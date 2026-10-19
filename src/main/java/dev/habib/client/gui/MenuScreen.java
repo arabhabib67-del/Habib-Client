@@ -690,6 +690,7 @@ public class MenuScreen extends Screen {
 
     private float hitParticleToggle;
     private float pearlToggle;
+    private float consumableToggle;
     private float totemParticleToggle;
 
     private void optimizeRow(DrawContext ctx, int mx, int my, int y, String title, String sub, float t, float ca) {
@@ -710,12 +711,13 @@ public class MenuScreen extends Screen {
         totemParticleToggle = approach(totemParticleToggle, HabibConfig.noTotemParticles ? 1f : 0f, dt, 16f);
         hitParticleToggle = approach(hitParticleToggle, HabibConfig.noHitParticles ? 1f : 0f, dt, 16f);
         pearlToggle = approach(pearlToggle, HabibConfig.pearlOptimizer ? 1f : 0f, dt, 16f);
-        optimizeRow(ctx, mx, my, oy + 28, "Crystal optimizer", "Crystals vanish the instant you hit them.", crystalToggle, ca);
-        optimizeRow(ctx, mx, my, oy + 62, "No explosion particles", "Cuts the lag from crystal explosions.", particleToggle, ca);
-        optimizeRow(ctx, mx, my, oy + 96, "No totem particles", "Hides the totem pop burst. Pop counter still works.", totemParticleToggle, ca);
-        optimizeRow(ctx, mx, my, oy + 130, "No hit particles", "Hides crit, enchant-hit and damage particles.", hitParticleToggle, ca);
-        optimizeRow(ctx, mx, my, oy + 164, "Ender pearl optimizer", "Hides pearl trail and landing particles. Pearls work as normal.", pearlToggle, ca);
-
+        consumableToggle = approach(consumableToggle, HabibConfig.consumableOptimizer ? 1f : 0f, dt, 16f);
+        optimizeRow(ctx, mx, my, oy + 26, "Crystal optimizer", "Crystals vanish the instant you hit them.", crystalToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 58, "No explosion particles", "Cuts the lag from crystal explosions.", particleToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 90, "No totem particles", "Hides the totem pop burst. Pop counter still works.", totemParticleToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 122, "No hit particles", "Hides crit, enchant-hit and damage particles.", hitParticleToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 154, "Ender pearl optimizer", "Hides pearl trail and landing particles. Pearls work as normal.", pearlToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 186, "Consumable optimizer", "Hides eating, drinking and splash potion particles.", consumableToggle, ca);
     }
 
     private float lowHealthToggle;
@@ -859,20 +861,23 @@ public class MenuScreen extends Screen {
     }
 
     private void optimizeClicked(double mx, double my) {
-        if (inside(mx, my, cx, cy + 28, cw, 30)) {
+        if (inside(mx, my, cx, cy + 26, cw, 30)) {
             HabibConfig.crystalOptimizer = !HabibConfig.crystalOptimizer;
             HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 62, cw, 30)) {
+        } else if (inside(mx, my, cx, cy + 58, cw, 30)) {
             HabibConfig.noExplosionParticles = !HabibConfig.noExplosionParticles;
             HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 96, cw, 30)) {
+        } else if (inside(mx, my, cx, cy + 90, cw, 30)) {
             HabibConfig.noTotemParticles = !HabibConfig.noTotemParticles;
             HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 130, cw, 30)) {
+        } else if (inside(mx, my, cx, cy + 122, cw, 30)) {
             HabibConfig.noHitParticles = !HabibConfig.noHitParticles;
             HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 164, cw, 30)) {
+        } else if (inside(mx, my, cx, cy + 154, cw, 30)) {
             HabibConfig.pearlOptimizer = !HabibConfig.pearlOptimizer;
+            HabibConfig.save();
+        } else if (inside(mx, my, cx, cy + 186, cw, 30)) {
+            HabibConfig.consumableOptimizer = !HabibConfig.consumableOptimizer;
             HabibConfig.save();
         }
     }

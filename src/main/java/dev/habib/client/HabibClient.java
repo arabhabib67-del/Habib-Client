@@ -6,6 +6,7 @@ import dev.habib.client.hud.HudManager;
 import dev.habib.client.update.Updater;
 import dev.habib.client.util.CrystalOptimizer;
 import dev.habib.client.util.Effects;
+import dev.habib.client.util.ConsumableOptimizer;
 import dev.habib.client.util.PearlOptimizer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -39,6 +40,7 @@ public class HabibClient implements ClientModInitializer {
         CrystalOptimizer.init();
         Effects.init();
         PearlOptimizer.init();
+        ConsumableOptimizer.init();
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             while (openEditorKey.wasPressed()) {

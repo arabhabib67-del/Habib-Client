@@ -3,6 +3,12 @@
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
 None of these builds have been compiled or run in-game yet; build with `./gradlew build` before relying on them.
 
+## 1.12.0 - Consumable optimizer
+- New **Consumable optimizer** switch in the Optimize tab (off by default). It hides the food crumbs and sip particles from anyone eating or drinking, and the burst from splash and lingering potions.
+- Visual only: eating, drinking and potion effects are unchanged. Only particles near someone eating or drinking, or near a potion in the air, are hidden. Potion zones last 1 second so bursts that arrive late on high ping are still hidden.
+- Lingering potion clouds and effect swirls around players are left alone on purpose.
+- The Optimize tab rows are spaced a little tighter to fit the sixth switch.
+
 ## 1.11.0 - Auto-updater
 - The mod checks a GitHub repo for a newer release on launch, downloads it and installs it after the game closes. Version and status show in the menu header (click to check or install).
 - Safety checks: download must come from the repo's release URL, match GitHub's SHA-256 for the file, and be this mod at the announced version. Old jar is kept aside until the new one is in place; development builds never update.

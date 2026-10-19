@@ -35,6 +35,8 @@ public final class HabibConfig {
     public static boolean noHitParticles = false;
     /** Hides pearl trail and landing particles (visual only). */
     public static boolean pearlOptimizer = false;
+    /** Hides eating, drinking and splash potion particles (visual only). */
+    public static boolean consumableOptimizer = false;
 
     /** Screen alerts (all off by default). */
     public static boolean lowHealthWarning = false;
@@ -74,6 +76,7 @@ public final class HabibConfig {
         boolean noTotemParticles = false;
         boolean noHitParticles = false;
         boolean pearlOptimizer = false;
+        boolean consumableOptimizer = false;
         boolean lowHealthWarning = false;
         boolean popFlash = false;
         boolean popMessages = false;
@@ -112,6 +115,7 @@ public final class HabibConfig {
             noTotemParticles = data.noTotemParticles;
             noHitParticles = data.noHitParticles;
             pearlOptimizer = data.pearlOptimizer;
+            consumableOptimizer = data.consumableOptimizer;
             lowHealthWarning = data.lowHealthWarning;
             popFlash = data.popFlash;
             popMessages = data.popMessages;
@@ -147,6 +151,7 @@ public final class HabibConfig {
         data.noTotemParticles = noTotemParticles;
         data.noHitParticles = noHitParticles;
         data.pearlOptimizer = pearlOptimizer;
+        data.consumableOptimizer = consumableOptimizer;
         data.lowHealthWarning = lowHealthWarning;
         data.popFlash = popFlash;
         data.popMessages = popMessages;
