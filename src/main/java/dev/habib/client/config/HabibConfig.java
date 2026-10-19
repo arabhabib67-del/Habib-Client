@@ -100,41 +100,13 @@ public final class HabibConfig {
         try {
             Data data = GSON.fromJson(Files.readString(FILE), Data.class);
             if (data == null) return;
-            zoomFactor = Math.max(0.05f, Math.min(1f, data.zoomFactor));
-            swingStyle = Math.max(0, Math.min(SwingAnimator.COUNT - 1, data.swingStyle));
-            swingIntensity = Math.max(0.25f, Math.min(2f, data.swingIntensity));
-            hudBackground = data.hudBackground;
-            updateRepo = data.updateRepo == null ? "" : data.updateRepo;
-            autoUpdate = data.autoUpdate;
-            armorLayout = Math.max(0, Math.min(1, data.armorLayout));
-            armorShowHeld = data.armorShowHeld;
-            armorDurability = Math.max(0, Math.min(3, data.armorDurability));
-            swingOnlyOnHit = data.swingOnlyOnHit;
-            crystalOptimizer = data.crystalOptimizer;
-            noExplosionParticles = data.noExplosionParticles;
-            noTotemParticles = data.noTotemParticles;
-            noHitParticles = data.noHitParticles;
-            pearlOptimizer = data.pearlOptimizer;
-            consumableOptimizer = data.consumableOptimizer;
-            lowHealthWarning = data.lowHealthWarning;
-            popFlash = data.popFlash;
-            popMessages = data.popMessages;
-            lowArmorWarning = data.lowArmorWarning;
-            for (HudModule m : HudManager.MODULES) {
-                ModuleData d = data.modules == null ? null : data.modules.get(m.id);
-                if (d == null) continue;
-                m.enabled = d.enabled;
-                m.x = d.x;
-                m.y = d.y;
-                m.scale = Math.max(0.5f, Math.min(3f, d.scale));
-                m.color = d.color;
-            }
+            apply(data, true);
         } catch (Exception e) {
             System.err.println("[Habib Client] Failed to read config, using defaults: " + e);
         }
     }
 
-    public static void save() {
+    private static Data capture() {
         Data data = new Data();
         data.zoomFactor = zoomFactor;
         data.swingStyle = swingStyle;
@@ -165,6 +137,78 @@ public final class HabibConfig {
             d.color = m.color;
             data.modules.put(m.id, d);
         }
+        return data;
+    }
+
+    /** Current settings as compact JSON for profiles and share codes. Never includes the updater settings. */
+    static String snapshotJson() {
+        Data data = capture();
+        data.updateRepo = "";
+        data.autoUpdate = true;
+        return new Gson().toJson(data);
+    }
+
+    /** True if this JSON reads as a settings snapshot of a sensible size. */
+    static boolean snapshotValid(String json) {
+        try {
+            Data data = new Gson().fromJson(json, Data.class);
+            return data != null && (data.modules == null || data.modules.size() <= 200);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Applies a profile's JSON. Returns false (and changes nothing) if it can't be read. */
+    static boolean applySnapshotJson(String json) {
+        try {
+            Data data = new Gson().fromJson(json, Data.class);
+            if (data == null) return false;
+            if (data.modules != null && data.modules.size() > 200) return false;
+            apply(data, false);
+            save();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Applies a settings snapshot. Updater settings are only taken from the config file, never from a profile. */
+    private static void apply(Data data, boolean updater) {
+        zoomFactor = Math.max(0.05f, Math.min(1f, data.zoomFactor));
+        swingStyle = Math.max(0, Math.min(SwingAnimator.COUNT - 1, data.swingStyle));
+        swingIntensity = Math.max(0.25f, Math.min(2f, data.swingIntensity));
+        hudBackground = data.hudBackground;
+        if (updater) {
+            updateRepo = data.updateRepo == null ? "" : data.updateRepo;
+            autoUpdate = data.autoUpdate;
+        }
+        armorLayout = Math.max(0, Math.min(1, data.armorLayout));
+        armorShowHeld = data.armorShowHeld;
+        armorDurability = Math.max(0, Math.min(3, data.armorDurability));
+        swingOnlyOnHit = data.swingOnlyOnHit;
+        crystalOptimizer = data.crystalOptimizer;
+        noExplosionParticles = data.noExplosionParticles;
+        noTotemParticles = data.noTotemParticles;
+        noHitParticles = data.noHitParticles;
+        pearlOptimizer = data.pearlOptimizer;
+        consumableOptimizer = data.consumableOptimizer;
+        lowHealthWarning = data.lowHealthWarning;
+        popFlash = data.popFlash;
+        popMessages = data.popMessages;
+        lowArmorWarning = data.lowArmorWarning;
+        for (HudModule m : HudManager.MODULES) {
+            ModuleData d = data.modules == null ? null : data.modules.get(m.id);
+            if (d == null) continue;
+            m.enabled = d.enabled;
+            m.x = Math.max(-2000, Math.min(8000, d.x));
+            m.y = Math.max(-2000, Math.min(8000, d.y));
+            m.scale = Math.max(0.5f, Math.min(3f, d.scale));
+            m.color = d.color;
+        }
+    }
+
+    public static void save() {
+        Data data = capture();
         try {
             Files.createDirectories(FILE.getParent());
             Files.writeString(FILE, GSON.toJson(data));

@@ -3,6 +3,13 @@
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
 None of these builds have been compiled or run in-game yet; build with `./gradlew build` before relying on them.
 
+## 1.13.0 - Profiles and share codes
+- New **Profiles** tab (last in the sidebar). Type a name and press **Save new** to store your current setup: every HUD module's on/off, position, size and colour, plus the optimizers, effects, animation, zoom and armor settings.
+- **Load** switches to a profile, **Update** overwrites it with your current settings, **Share** copies a share code to the clipboard, and **x** deletes (click twice to confirm). Up to 50 profiles, saved in `config/habibclient-profiles.json`.
+- **Paste code** reads a share code from the clipboard and adds it to your list. It does not change your settings until you press Load.
+- Share codes are one line starting with `HC1-`. Imported codes are size-limited and every value is range-checked. Profiles never contain the auto-update settings, so a code can't change where the mod updates from.
+- The sidebar has 11 tabs now, so tab spacing is tighter. Profiles has no number key (Up and Down reach it).
+
 ## 1.12.0 - Consumable optimizer
 - New **Consumable optimizer** switch in the Optimize tab (off by default). It hides the food crumbs and sip particles from anyone eating or drinking, and the burst from splash and lingering potions.
 - Visual only: eating, drinking and potion effects are unchanged. Only particles near someone eating or drinking, or near a potion in the air, are hidden. Potion zones last 1 second so bursts that arrive late on high ping are still hidden.

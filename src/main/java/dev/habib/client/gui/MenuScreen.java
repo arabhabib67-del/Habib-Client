@@ -1,6 +1,7 @@
 package dev.habib.client.gui;
 
 import dev.habib.client.config.HabibConfig;
+import dev.habib.client.config.ProfileStore;
 import dev.habib.client.hud.HudManager;
 import dev.habib.client.hud.HudModule;
 import dev.habib.client.hud.HudModule.Category;
@@ -43,7 +44,8 @@ public class MenuScreen extends Screen {
         OPTIMIZE("Optimize", null),
         EFFECTS("Effects", null),
         PRESETS_TAB("Presets", null),
-        LAYOUT("Layout", null);
+        LAYOUT("Layout", null),
+        PROFILES("Profiles", null);
 
         final String label;
         final Category category;
@@ -71,6 +73,7 @@ public class MenuScreen extends Screen {
     private static final int SIDE_W = 100;
     private static final int ROW_H = 26;
     private static final int ROW_STRIDE = 28;
+    private static final int TAB_H = 17;
 
     private Tab tab = Tab.INFO;
     private boolean layoutMode;
@@ -109,6 +112,10 @@ public class MenuScreen extends Screen {
     private static final int INSTALLED_ROW_H = 26;
     private static final int INSTALLED_STRIDE = 28;
     private TextFieldWidget packField;
+    private TextFieldWidget profileField;
+    private String profileNote = "";
+    private int pendingDelete = -1;
+    private long pendingDeleteAt;
     private boolean packsInstalledView; // true for both the Installed and Enabled views
     private int packView; // 0 = Modrinth, 1 = Installed, 2 = Enabled
     private List<Hit> hits = new ArrayList<>();
@@ -166,6 +173,14 @@ public class MenuScreen extends Screen {
             }
         });
         addSelectableChild(packField);
+
+        String oldName = profileField == null ? "" : profileField.getText();
+        profileField = new TextFieldWidget(textRenderer, 0, 0, 100, 18, Text.literal("Profile name"));
+        profileField.setMaxLength(ProfileStore.MAX_NAME);
+        profileField.setDrawsBackground(false);
+        profileField.setPlaceholder(Text.literal("Profile name..."));
+        profileField.setText(oldName);
+        addSelectableChild(profileField);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -244,7 +259,7 @@ public class MenuScreen extends Screen {
 
     private int tabY(int i) {
         int base = py + HEADER_H + 8;
-        return i < 4 ? base + 12 + 19 * i : base + 102 + 18 * (i - 4);
+        return i < 4 ? base + 12 + 18 * i : base + 95 + TAB_H * (i - 4);
     }
 
     private int rowY(int j) {
@@ -259,7 +274,14 @@ public class MenuScreen extends Screen {
         return list;
     }
 
+    private boolean scrolls() {
+        return tab.category != null || tab == Tab.PACKS || tab == Tab.PROFILES;
+    }
+
     private float maxScroll() {
+        if (tab == Tab.PROFILES) {
+            return Math.max(0f, ProfileStore.list().size() * PROFILE_STRIDE - profileListH());
+        }
         if (tab == Tab.PACKS) {
             int rows = packsInstalledView ? installedPacks().size() : hits.size();
             int stride = packsInstalledView ? INSTALLED_STRIDE : PACK_STRIDE;
@@ -297,7 +319,8 @@ public class MenuScreen extends Screen {
         for (int d = 0; d < 10; d++) {
             if (keyEdge(GLFW.GLFW_KEY_0 + d) && digit < 0) digit = d == 0 ? 9 : d - 1;
         }
-        if (layoutMode || (packField != null && packField.isFocused())) return;
+        if (layoutMode || (packField != null && packField.isFocused())
+                || (profileField != null && profileField.isFocused())) return;
 
         int cur = tab.ordinal();
         if (up) select(TABS[(cur + TABS.length - 1) % TABS.length]);
@@ -315,7 +338,7 @@ public class MenuScreen extends Screen {
     }
 
     private boolean scrollbarHit(double mx, double my) {
-        return (tab.category != null || tab == Tab.PACKS) && maxScroll() > 0f && inside(mx, my, px + pw - 10, cy, 10, ch);
+        return scrolls() && maxScroll() > 0f && inside(mx, my, px + pw - 10, cy, 10, ch);
     }
 
     private void dragScrollbar(double my) {
@@ -413,25 +436,25 @@ public class MenuScreen extends Screen {
         int base = py + HEADER_H + 8;
         txt(ctx, "MODULES", px + 14, base, alpha(MUTED, a * 0.6f));
         ctx.fill(px + 14 + textRenderer.getWidth("MODULES") + 6, base + 4, px + SIDE_W - 10, base + 5, alpha(HAIR, a));
-        txt(ctx, "CLIENT", px + 14, base + 92, alpha(MUTED, a * 0.6f));
-        ctx.fill(px + 14 + textRenderer.getWidth("CLIENT") + 6, base + 96, px + SIDE_W - 10, base + 97, alpha(HAIR, a));
+        txt(ctx, "CLIENT", px + 14, base + 85, alpha(MUTED, a * 0.6f));
+        ctx.fill(px + 14 + textRenderer.getWidth("CLIENT") + 6, base + 89, px + SIDE_W - 10, base + 90, alpha(HAIR, a));
 
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
         highlightY = approach(highlightY, targetY, dt, 16f);
         int hy = Math.round(highlightY);
-        ctx.fill(px + 6, hy, px + SIDE_W - 1, hy + 18, alpha(ACCENT, a * 0.09f)); // active tab plate
-        ctx.fill(px + 6, hy + 2, px + 8, hy + 16, alpha(ACCENT, a));              // marker follows the active tab
+        ctx.fill(px + 6, hy, px + SIDE_W - 1, hy + TAB_H, alpha(ACCENT, a * 0.09f)); // active tab plate
+        ctx.fill(px + 6, hy + 2, px + 8, hy + TAB_H - 2, alpha(ACCENT, a));              // marker follows the active tab
 
         for (int i = 0; i < TABS.length; i++) {
-            boolean over = inside(mx, my, px + 6, tabY(i), SIDE_W - 12, 18);
+            boolean over = inside(mx, my, px + 6, tabY(i), SIDE_W - 12, TAB_H);
             tabHover[i] = approach(tabHover[i], over ? 1f : 0f, dt, 18f);
             float strength = Math.max(TABS[i] == tab ? 1f : 0f, tabHover[i] * 0.8f);
             int nudge = Math.round(tabHover[i] * 2f);
-            if (TABS[i] != tab) ctx.fill(px + 6, tabY(i), px + SIDE_W - 1, tabY(i) + 18, alpha(0xFFFFFFFF, a * 0.05f * tabHover[i]));
-            txt(ctx, TABS[i].label, px + 18 + nudge, tabY(i) + 5, alpha(mix(MUTED, TEXT, strength), a));
+            if (TABS[i] != tab) ctx.fill(px + 6, tabY(i), px + SIDE_W - 1, tabY(i) + TAB_H, alpha(0xFFFFFFFF, a * 0.05f * tabHover[i]));
+            txt(ctx, TABS[i].label, px + 18 + nudge, tabY(i) + 4, alpha(mix(MUTED, TEXT, strength), a));
             if (TABS[i].category == null && i < 10) {
-                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 12, tabY(i) + 5, alpha(MUTED, a * 0.3f));
+                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 12, tabY(i) + 4, alpha(MUTED, a * 0.3f));
             }
             if (TABS[i].category != null) {
                 int on = 0;
@@ -441,7 +464,7 @@ public class MenuScreen extends Screen {
                     total++;
                     if (m.enabled) on++;
                 }
-                txtRight(ctx, on + "/" + total, px + SIDE_W - 12, tabY(i) + 5,
+                txtRight(ctx, on + "/" + total, px + SIDE_W - 12, tabY(i) + 4,
                         alpha(MUTED, a * (0.45f + 0.4f * strength)));
             }
         }
@@ -457,6 +480,7 @@ public class MenuScreen extends Screen {
             case EFFECTS -> renderEffects(ctx, mx, my, dt, ca, oy);
             case PRESETS_TAB -> renderPresets(ctx, mx, my, dt, ca, oy);
             case LAYOUT -> renderLayoutTab(ctx, mx, my, dt, ca, oy);
+            case PROFILES -> renderProfiles(ctx, mx, my, ca, oy);
             default -> renderModules(ctx, mx, my, dt, ca);
         }
         ctx.disableScissor();
@@ -465,7 +489,7 @@ public class MenuScreen extends Screen {
 
     /** Thin scroll indicator on the panel's right edge, only when the list actually scrolls. */
     private void scrollbar(DrawContext ctx, float a) {
-        if (tab.category == null && tab != Tab.PACKS) return;
+        if (!scrolls()) return;
         float max = maxScroll();
         if (max <= 0f) return;
         int x = px + pw - 6;
@@ -752,6 +776,154 @@ public class MenuScreen extends Screen {
         } else if (inside(mx, my, cx, cy + 130, cw, 30)) {
             HabibConfig.lowArmorWarning = !HabibConfig.lowArmorWarning;
             HabibConfig.save();
+        }
+    }
+
+    // ------------------------------------------------------------------ profiles
+
+    private static final int PROFILE_ROW_H = 26;
+    private static final int PROFILE_STRIDE = 28;
+    private static final int PROFILE_BTN_NEW_W = 66;
+    private static final int PROFILE_BTN_PASTE_W = 78;
+
+    private int profileListTop() {
+        return cy + 54;
+    }
+
+    private int profileListH() {
+        return ch - 54;
+    }
+
+    private int profileFieldW() {
+        return cw - PROFILE_BTN_NEW_W - PROFILE_BTN_PASTE_W - 12;
+    }
+
+    private void profileButton(DrawContext ctx, boolean over, int x, int y, int w, int h, String label, int base, float ca) {
+        rrect(ctx, x, y, w, h, 5, alpha(over ? mix(base, 0xFFFFFFFF, 0.15f) : base, ca));
+        txtCentered(ctx, label, x + w / 2, y + (h - 8) / 2, alpha(TEXT, ca));
+    }
+
+    private void renderProfiles(DrawContext ctx, int mx, int my, float ca, int oy) {
+        sectionTitle(ctx, "Profiles", cx, oy, ca);
+        String note = profileNote.isEmpty() ? "Save your setup, switch between setups, or share one as a code." : profileNote;
+        txt(ctx, textRenderer.trimToWidth(note, cw), cx, oy + 12, alpha(profileNote.isEmpty() ? MUTED : ACCENT, ca));
+
+        // name box + the two top buttons
+        int fy = oy + 26;
+        int fw = profileFieldW();
+        rrect(ctx, cx, fy, fw, 20, 5, alpha(ROW, ca));
+        profileField.setX(cx + 8);
+        profileField.setY(fy + 6);
+        profileField.setWidth(fw - 16);
+        profileField.setHeight(8);
+        profileField.render(ctx, mx, my, 0f);
+        int bx = cx + fw + 6;
+        profileButton(ctx, inside(mx, my, bx, fy, PROFILE_BTN_NEW_W, 20), bx, fy, PROFILE_BTN_NEW_W, 20, "Save new", ACCENT_DIM, ca);
+        int px2 = bx + PROFILE_BTN_NEW_W + 6;
+        profileButton(ctx, inside(mx, my, px2, fy, PROFILE_BTN_PASTE_W, 20), px2, fy, PROFILE_BTN_PASTE_W, 20, "Paste code", 0xFF2A2A30, ca);
+
+        if (pendingDelete >= 0 && System.currentTimeMillis() - pendingDeleteAt > 3000L) pendingDelete = -1;
+
+        int top = profileListTop();
+        int h = profileListH();
+        List<ProfileStore.Profile> list = ProfileStore.list();
+        ctx.enableScissor(cx - 2, top, cx + cw + 2, top + h);
+        if (list.isEmpty()) {
+            txt(ctx, textRenderer.trimToWidth("No profiles yet. Type a name and press Save new.", cw), cx + 2, top + 6, alpha(MUTED, ca));
+        }
+        for (int j = 0; j < list.size(); j++) {
+            int ry = top + j * PROFILE_STRIDE - Math.round(scroll);
+            if (ry + PROFILE_ROW_H < top || ry > top + h) continue;
+            boolean clip = inside(mx, my, cx, top, cw, h);
+            boolean over = clip && inside(mx, my, cx, ry, cw, PROFILE_ROW_H);
+            rrect(ctx, cx, ry, cw, PROFILE_ROW_H, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
+            stripe(ctx, cx, ry, PROFILE_ROW_H, over ? 1f : 0f, ACCENT, ca);
+
+            int dx = profileDeleteX();
+            int ux = dx - 4 - 42;
+            int sx = ux - 4 - 38;
+            int lx = sx - 4 - 34;
+            int by = ry + 4;
+            txt(ctx, textRenderer.trimToWidth(list.get(j).name, lx - cx - 18), cx + 10, ry + 9, alpha(TEXT, ca));
+            profileButton(ctx, clip && inside(mx, my, lx, by, 34, 18), lx, by, 34, 18, "Load", ACCENT_DIM, ca);
+            profileButton(ctx, clip && inside(mx, my, sx, by, 38, 18), sx, by, 38, 18, "Share", 0xFF2A2A30, ca);
+            profileButton(ctx, clip && inside(mx, my, ux, by, 42, 18), ux, by, 42, 18, "Update", 0xFF2A2A30, ca);
+            boolean pend = pendingDelete == j;
+            profileButton(ctx, clip && inside(mx, my, dx, by, 16, 18), dx, by, 16, 18, pend ? "?" : "x", pend ? 0xFF9B2C2C : 0xFF2A2A30, ca);
+        }
+        ctx.disableScissor();
+    }
+
+    private int profileDeleteX() {
+        return cx + cw - 6 - 16;
+    }
+
+    private void profilesClicked(Click click, boolean doubled, double mx, double my) {
+        int fw = profileFieldW();
+        if (inside(mx, my, cx, cy + 26, fw, 20)) {
+            setFocused(profileField);
+            profileField.mouseClicked(click, doubled);
+            return;
+        }
+        setFocused(null);
+        int bx = cx + fw + 6;
+        if (inside(mx, my, bx, cy + 26, PROFILE_BTN_NEW_W, 20)) {
+            int before = ProfileStore.list().size();
+            profileNote = ProfileStore.create(profileField.getText());
+            if (ProfileStore.list().size() > before) {
+                profileField.setText("");
+                scrollTarget = maxScroll(); // show the new profile at the bottom of the list
+            }
+            pendingDelete = -1;
+            return;
+        }
+        int pbx = bx + PROFILE_BTN_NEW_W + 6;
+        if (inside(mx, my, pbx, cy + 26, PROFILE_BTN_PASTE_W, 20)) {
+            String clip = MinecraftClient.getInstance().keyboard.getClipboard();
+            int before = ProfileStore.list().size();
+            profileNote = ProfileStore.importCode(clip);
+            if (ProfileStore.list().size() > before) scrollTarget = maxScroll();
+            pendingDelete = -1;
+            return;
+        }
+
+        int top = profileListTop();
+        if (!inside(mx, my, cx, top, cw, profileListH())) return;
+        List<ProfileStore.Profile> list = ProfileStore.list();
+        for (int j = 0; j < list.size(); j++) {
+            int ry = top + j * PROFILE_STRIDE - Math.round(scroll);
+            if (!inside(mx, my, cx, ry, cw, PROFILE_ROW_H)) continue;
+            int dx = profileDeleteX();
+            int ux = dx - 4 - 42;
+            int sx = ux - 4 - 38;
+            int lx = sx - 4 - 34;
+            int by = ry + 4;
+            if (inside(mx, my, dx, by, 16, 18)) {
+                if (pendingDelete == j) {
+                    profileNote = ProfileStore.delete(j);
+                    pendingDelete = -1;
+                } else {
+                    pendingDelete = j;
+                    pendingDeleteAt = System.currentTimeMillis();
+                    profileNote = "Click x again to delete \"" + list.get(j).name + "\".";
+                }
+                return;
+            }
+            pendingDelete = -1;
+            if (inside(mx, my, ux, by, 42, 18)) {
+                profileNote = ProfileStore.overwrite(j);
+            } else if (inside(mx, my, sx, by, 38, 18)) {
+                String code = ProfileStore.codeFor(j);
+                if (code == null) {
+                    profileNote = "Couldn't make a code for that profile.";
+                } else {
+                    MinecraftClient.getInstance().keyboard.setClipboard(code);
+                    profileNote = "Code for \"" + list.get(j).name + "\" copied. Paste it to share.";
+                }
+            } else if (inside(mx, my, lx, by, 34, 18)) {
+                profileNote = ProfileStore.apply(j);
+            }
+            return;
         }
     }
 
@@ -1215,7 +1387,7 @@ public class MenuScreen extends Screen {
             return true;
         }
         for (int i = 0; i < TABS.length; i++) {
-            if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, 18)) {
+            if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, TAB_H)) {
                 select(TABS[i]);
                 return true;
             }
@@ -1229,6 +1401,7 @@ public class MenuScreen extends Screen {
             case EFFECTS -> effectsClicked(mx, my);
             case PRESETS_TAB -> presetsClicked(mx, my);
             case LAYOUT -> layoutTabClicked(mx, my);
+            case PROFILES -> profilesClicked(click, doubled, mx, my);
             default -> modulesClicked(mx, my);
         }
         return true;
@@ -1371,7 +1544,7 @@ public class MenuScreen extends Screen {
                 HabibConfig.save();
                 return true;
             }
-        } else if ((tab.category != null || tab == Tab.PACKS) && inside(mx, my, cx, cy, cw, ch)) {
+        } else if (scrolls() && inside(mx, my, cx, cy, cw, ch)) {
             scrollTarget = Math.max(0f, Math.min(maxScroll(), scrollTarget - (float) vertical * ROW_STRIDE));
             return true;
         }

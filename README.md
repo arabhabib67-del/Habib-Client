@@ -43,6 +43,7 @@ Press **Right Shift** in a world to open the Habib Client menu.
 - **Effects**: optional screen alerts for crystal fights, all off by default. **Low health warning** pulses the screen edge red at 3 hearts or less, **Totem pop flash** flashes gold when you pop and green when your target pops, **Totem pop messages** adds a chat line for those pops, and **Low armor warning** pulses orange when a piece is under 10% durability.
 - **Presets**: one-click graphics presets. **Minimal** (6 chunks, minimal particles, no shadows, unlimited FPS), **Medium** (10 chunks, fewer particles, shadows on, unlimited FPS) and **High** (12 chunks, all particles, shadows on, unlimited FPS). All three turn VSync off and set the FPS cap to unlimited. The active preset is highlighted, or it shows "Custom" if you've changed something. Clouds and graphics mode are left alone.
 - **Layout**: open the layout editor to drag modules around, scroll to resize, right-click to recolour. Esc goes back. The **Box behind HUD** switch turns the translucent box off so modules show as plain text only (held keystrokes turn yellow instead of lighting up their box).
+- **Profiles**: save your whole setup under a name (HUD modules, positions, sizes, colours, optimizers, effects, animation, zoom and armor settings). **Save new** stores your current setup, **Load** switches to a profile, **Update** overwrites it with your current settings, **Share** copies a code like `HC1-...` to your clipboard, and **x** deletes it (click twice). **Paste code** adds a profile from a code you copied; press Load to use it. Profiles never include the auto-update settings.
 - **Menu navigation**: Up/Down arrows or the number keys (1-9, 0) switch tabs, PageUp/PageDown/Home/End move through long lists, and the scroll bar can be dragged. Each tab remembers its scroll position, and clicking outside the panel closes the menu.
 - **C** (hold): zoom
 - Keys can be rebound under Options > Controls > Habib Client
@@ -59,7 +60,7 @@ The mod can update itself from your own GitHub repo, so you never have to send o
 4. Download that jar once, put it in your `mods` folder, and start the game.
 
 **Every update after that**
-Raise `mod_version` in `gradle.properties` (for example `1.11.0` to `1.11.1`), commit and push. The workflow publishes a new release. Next time you launch the game the mod finds it, downloads it, checks it, and swaps it in when you close the game. A new version only counts if its number is higher than the one you have.
+Raise `mod_version` in `gradle.properties` (for example `1.13.0` to `1.13.1`), commit and push. The workflow publishes a new release. Next time you launch the game the mod finds it, downloads it, checks it, and swaps it in when you close the game. A new version only counts if its number is higher than the one you have.
 
 **In the game**
 The menu header shows your version and the update status (for example `v1.11.0 - Up to date`). Click it to check right now, or to install when an update is waiting. A chat line tells you when an update has been downloaded.
@@ -77,7 +78,7 @@ Requires JDK 21 (if you also have a newer JDK installed, run `export JAVA_HOME=$
 ./gradlew build
 ```
 
-The jar is written to `build/libs/habib-client-1.12.0.jar`. Put it in your `mods` folder together with
+The jar is written to `build/libs/habib-client-1.13.0.jar`. Put it in your `mods` folder together with
 [Fabric Loader](https://fabricmc.net/use/) 0.19.5+ and [Fabric API](https://modrinth.com/mod/fabric-api) for 1.21.11.
 
 To run it straight from the project: `./gradlew runClient`.
