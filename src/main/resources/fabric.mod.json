@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "habibclient",
+  "version": "${version}",
+  "name": "Habib Client",
+  "description": "A PvP-focused client mod: FPS, ping, CPS, keystrokes, armor, potions, target HUD, combo/reach counters, zoom and a drag-and-drop HUD editor.",
+  "authors": [
+    "Habib"
+  ],
+  "license": "MIT",
+  "icon": "assets/habibclient/icon.png",
+  "environment": "client",
+  "custom": {
+    "habibclient": {
+      "updateRepo": "${updateRepo}"
+    }
+  },
+  "entrypoints": {
+    "client": [
+      "dev.habib.client.HabibClient"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "habibclient.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

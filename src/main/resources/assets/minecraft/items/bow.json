@@ -1,0 +1,183 @@
+{
+ "model": {
+  "type": "minecraft:condition",
+  "property": "minecraft:using_item",
+  "on_false": {
+   "type": "minecraft:model",
+   "model": "minecraft:item/bow"
+  },
+  "on_true": {
+   "type": "minecraft:range_dispatch",
+   "property": "minecraft:use_duration",
+   "scale": 0.05,
+   "entries": [
+    {
+     "threshold": 0.0,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 16740693
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.0833,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 16748117
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.1667,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 16755285
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.25,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 16762453
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.3333,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 16769877
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.4167,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 16777045
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.5,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_0",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 14942037
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.5833,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_1",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 13041493
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.6667,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_1",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 11206485
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.75,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_1",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 9371477
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.8333,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_2",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 7470933
+       }
+      ]
+     }
+    },
+    {
+     "threshold": 0.9167,
+     "model": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bow_pulling_2",
+      "tints": [
+       {
+        "type": "minecraft:constant",
+        "value": 5635925
+       }
+      ]
+     }
+    }
+   ],
+   "fallback": {
+    "type": "minecraft:model",
+    "model": "minecraft:item/bow_pulling_0",
+    "tints": [
+     {
+      "type": "minecraft:constant",
+      "value": 16733525
+     }
+    ]
+   }
+  }
+ }
+}
