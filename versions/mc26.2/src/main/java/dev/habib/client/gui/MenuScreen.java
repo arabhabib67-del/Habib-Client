@@ -68,6 +68,7 @@ public class MenuScreen extends Screen {
     private static final int MUTED = 0xFF85858C;
     private static final int OFF = 0xFF38383E;
     private static final int HAIR = 0x16FFFFFF;
+    private static final int LAYOUT_SNAP_DISTANCE = 8;
 
     private static final int HEADER_H = 30;
     private static final int SIDE_W = 100;
@@ -1328,6 +1329,21 @@ public class MenuScreen extends Screen {
     }
 
     private void renderLayoutMode(GuiGraphicsExtractor ctx, int mx, int my, float dt) {
+        int centerX = width / 2;
+        int centerY = height / 2;
+        int centeredX = dragging == null ? centerX : (width - dragging.scaledWidth()) / 2;
+        int centeredY = dragging == null ? centerY : (height - dragging.scaledHeight()) / 2;
+        boolean snappedX = dragging != null && dragging.x == centeredX;
+        boolean snappedY = dragging != null && dragging.y == centeredY;
+        int guide = alpha(0xFFECECEE, open * 0.25f);
+        ctx.fill(centerX, 0, centerX + 1, height, snappedX ? alpha(ACCENT, open * 0.9f) : guide);
+        ctx.fill(0, centerY, width, centerY + 1, snappedY ? alpha(ACCENT, open * 0.9f) : guide);
+        rrect(ctx, centerX - 5, centerY - 5, 11, 11, 2, alpha(0xE0131313, open));
+        border(ctx, centerX - 5, centerY - 5, 11, 11,
+                alpha(snappedX || snappedY ? ACCENT : TEXT, open * 0.9f));
+        rrect(ctx, centerX - 25, centerY + 9, 50, 14, 3, alpha(0xE0131313, open));
+        txtCentered(ctx, "CENTER", centerX, centerY + 12, alpha(TEXT, open));
+
         for (HudModule m : HudManager.MODULES) {
             if (!m.enabled) continue;
             int c = m == dragging ? 0xFF55FF55 : m.contains(mx, my) ? 0xFFFFFFFF : 0x66FFFFFF;
@@ -1517,8 +1533,14 @@ public class MenuScreen extends Screen {
         if (layoutMode && dragging != null && click.button() == 0) {
             int nx = (int) Math.round(mx - grabX);
             int ny = (int) Math.round(my - grabY);
-            dragging.x = Math.max(0, Math.min(width - dragging.scaledWidth(), nx));
-            dragging.y = Math.max(0, Math.min(height - dragging.scaledHeight(), ny));
+            int maxX = width - dragging.scaledWidth();
+            int maxY = height - dragging.scaledHeight();
+            int centeredX = maxX / 2;
+            int centeredY = maxY / 2;
+            if (Math.abs(nx - centeredX) <= LAYOUT_SNAP_DISTANCE) nx = centeredX;
+            if (Math.abs(ny - centeredY) <= LAYOUT_SNAP_DISTANCE) ny = centeredY;
+            dragging.x = Math.max(0, Math.min(maxX, nx));
+            dragging.y = Math.max(0, Math.min(maxY, ny));
             return true;
         }
         return super.mouseDragged(click, dx, dy);

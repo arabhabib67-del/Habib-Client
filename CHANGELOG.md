@@ -7,6 +7,10 @@ Version numbers for 1.1.0 and up were assigned afterwards to group the changes i
 - Retains the last good track during brief media-session errors and retries artwork downloads after a temporary failure.
 - Updated the separate 26.2 build for its changed HUD, screen, toast and item-rendering APIs.
 
+## 1.14.2 - HUD layout center guides
+- Added a labeled screen-center crosshair to the HUD layout editor so it is easy to see when an element is centered.
+- HUD elements now snap to the screen's horizontal and vertical center when dragged within 8 pixels of either guide.
+
 ## 1.14.0 - Minecraft 26.2 support
 - Added a separate Minecraft 26.2 build while keeping the existing Minecraft 1.21.11 build.
 - Release automation builds and attaches one jar per supported Minecraft version; the in-game updater chooses and verifies the jar matching the installed version.
