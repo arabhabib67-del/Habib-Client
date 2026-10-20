@@ -61,5 +61,11 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists - bump mod_version in both Gradle property files to publish a new one."
           else
+            BETA_URL=$(grep '^beta_access_url=' gradle.properties | cut -d= -f2- | tr -d '[:space:]')
+            MC26_BETA_URL=$(grep '^beta_access_url=' versions/mc26.2/gradle.properties | cut -d= -f2- | tr -d '[:space:]')
+            if [ -z "$BETA_URL" ] || [ "$BETA_URL" != "$MC26_BETA_URL" ]; then
+              echo "Set the same beta_access_url in both Gradle property files before publishing a release."
+              exit 1
+            fi
             gh release create "$TAG" release-assets/*.jar --target "$GITHUB_SHA" --title "Habib Client $VER" --generate-notes
           fi
