@@ -65,7 +65,7 @@ public class MenuScreen extends Screen {
     private static final int ROW = 0x4DFFFFFF;
     private static final int ROW_HOVER = 0x75FFFFFF;
     private static final int TEXT = 0xFFF2F4F8;
-    private static final int MUTED = 0xFF9EA8B7;
+    private static final int MUTED = 0xFFBBC6D3;
     private static final int OFF = 0xFF596270;
     private static final int HAIR = 0x25FFFFFF;
     private static final int LAYOUT_SNAP_DISTANCE = 8;
@@ -244,7 +244,7 @@ public class MenuScreen extends Screen {
 
     private void txt(DrawContext ctx, String s, int x, int y, int color) {
         if (((color >>> 24) & 0xFF) < 12) return;
-        ctx.drawText(textRenderer, s, x, y, color, false);
+        ctx.drawText(textRenderer, s, x, y, color, true);
     }
 
     private void txtCentered(DrawContext ctx, String s, int centerX, int y, int color) {
@@ -308,7 +308,7 @@ public class MenuScreen extends Screen {
         int steps = Math.max(1, Math.min(8, (int) Math.ceil(frameDt / 0.01f)));
         float step = frameDt / steps;
         for (int i = 0; i < steps; i++) {
-            velocity += ((target - value) * 330f - velocity * 18f) * step;
+            velocity += ((target - value) * 330f - velocity * 24f) * step;
             value += velocity * step;
         }
         if (Math.abs(value - target) < 0.002f && Math.abs(velocity) < 0.025f) {
@@ -329,12 +329,12 @@ public class MenuScreen extends Screen {
 
     private void drawHoverBounce(DrawContext ctx, int x, int y, int w, int h, int radius,
                                  float bounce, float a) {
-        float pop = Math.min(1f, bounce * 5f);
-        int spread = Math.round(pop * 3f);
-        int lift = Math.round(pop * 2f);
-        if (pop > 0.01f) {
-            rrect(ctx, x - spread / 2, y - lift, w + spread, h + spread / 2,
-                    radius + spread / 2, alpha(0x48FFFFFF, a * pop));
+        float pop = Math.min(1f, bounce * 8f);
+        int spread = Math.round(pop * 1.5f);
+        int lift = Math.round(pop);
+        if (pop > 0.18f) {
+            rrect(ctx, x - spread, y - lift, w + spread * 2, h + spread * 2,
+                    radius + spread, alpha(0x24FFFFFF, a * pop));
         }
     }
 
@@ -480,10 +480,10 @@ public class MenuScreen extends Screen {
         glassBorder(ctx, pillX() - 6, py + 9, pillW() + 12, 20, 10,
                 alpha(pillOver || Updater.highlighted() ? ACCENT : 0x48FFFFFF, a * 0.65f),
                 alpha(0x20FFFFFF, a));
-        txt(ctx, pillText(), pillX(), py + 15, alpha(pillCol, a * (Updater.highlighted() || pillOver ? 1f : 0.82f)));
+        txt(ctx, pillText(), pillX(), py + 15, alpha(pillCol, a * (Updater.highlighted() || pillOver ? 1f : 0.96f)));
 
         // breadcrumb: where you are
-        txtRight(ctx, tab.label, px + pw - 42, py + 15, alpha(MUTED, a * 0.8f));
+        txtRight(ctx, tab.label, px + pw - 42, py + 15, alpha(MUTED, a * 0.92f));
 
         // close button
         boolean closeHover = inside(mx, my, px + pw - 32, py + 8, 22, 22);
@@ -495,9 +495,9 @@ public class MenuScreen extends Screen {
 
         // sidebar
         int base = py + HEADER_H + 8;
-        txt(ctx, "HUD MODULES", px + 14, base, alpha(MUTED, a * 0.72f));
+        txt(ctx, "HUD MODULES", px + 14, base, alpha(MUTED, a * 0.9f));
         ctx.fill(px + 14 + textRenderer.getWidth("HUD MODULES") + 6, base + 4, px + SIDE_W - 12, base + 5, alpha(HAIR, a));
-        txt(ctx, "TOOLS", px + 14, base + 102, alpha(MUTED, a * 0.72f));
+        txt(ctx, "TOOLS", px + 14, base + 102, alpha(MUTED, a * 0.9f));
         ctx.fill(px + 14 + textRenderer.getWidth("TOOLS") + 6, base + 106, px + SIDE_W - 12, base + 107, alpha(HAIR, a));
 
         float targetY = tabY(tab.ordinal());
@@ -521,7 +521,7 @@ public class MenuScreen extends Screen {
             }
             txt(ctx, TABS[i].label, px + 20, tabY(i) + 5, alpha(mix(MUTED, TEXT, strength), a));
             if (TABS[i].category == null && i < 10) {
-                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 14, tabY(i) + 5, alpha(MUTED, a * 0.46f));
+                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 14, tabY(i) + 5, alpha(MUTED, a * 0.68f));
             }
             if (TABS[i].category != null) {
                 int on = 0;
@@ -532,7 +532,7 @@ public class MenuScreen extends Screen {
                     if (m.enabled) on++;
                 }
                 txtRight(ctx, on + "/" + total, px + SIDE_W - 14, tabY(i) + 5,
-                        alpha(MUTED, a * (0.45f + 0.4f * strength)));
+                        alpha(MUTED, a * (0.68f + 0.3f * strength)));
             }
         }
 
@@ -573,8 +573,8 @@ public class MenuScreen extends Screen {
         int enabled = 0;
         for (HudModule module : list) if (module.enabled) enabled++;
         sectionTitle(ctx, tab.label + " widgets", cx, cy + 1, ca);
-        txtRight(ctx, enabled + " / " + list.size() + " ON", cx + cw, cy + 2, alpha(MUTED, ca * 0.82f));
-        txt(ctx, "Toggle, resize and recolour each HUD item.", cx, cy + 14, alpha(MUTED, ca * 0.78f));
+        txtRight(ctx, enabled + " / " + list.size() + " ON", cx + cw, cy + 2, alpha(MUTED, ca * 0.95f));
+        txt(ctx, "Toggle, resize and recolour each HUD item.", cx, cy + 14, alpha(MUTED, ca * 0.92f));
 
         for (int j = 0; j < list.size(); j++) {
             HudModule m = list.get(j);
@@ -596,7 +596,7 @@ public class MenuScreen extends Screen {
             // Scale controls appear on hover; color and on/off stay visible and aligned.
             float hv = hover[idx] * ca;
             if (hv > 0.02f && cw > 350) {
-                txt(ctx, "SCALE", cx + cw - 220, ry + 12, alpha(MUTED, hv * 0.8f));
+                txt(ctx, "SCALE", cx + cw - 220, ry + 12, alpha(MUTED, hv * 0.95f));
                 smallButton(ctx, mx, my, cx + cw - 174, ry + 8, "-", hv);
                 txtCentered(ctx, String.format(Locale.ROOT, "%.1fx", m.scale), cx + cw - 148, ry + 11, alpha(MUTED, hv));
                 smallButton(ctx, mx, my, cx + cw - 122, ry + 8, "+", hv);
@@ -1217,6 +1217,15 @@ public class MenuScreen extends Screen {
         rrect(ctx, Math.round(packSegX) + 2, oy + 2, third - 4, 16, 5, alpha(ACCENT, ca * 0.9f));
         String[] names = {"Modrinth", "Installed", "Enabled"};
         for (int v = 0; v < 3; v++) {
+            boolean over = inside(mx, my, cx + v * third, oy, third, 20);
+            float progress = hoverSpring(5000 + v, over);
+            float bounce = lastHoverBounce;
+            if (v == packView) {
+                if (bounce > 0.01f) drawHoverBounce(ctx, cx + v * third, oy + 2, third, 16, 5, bounce, ca);
+            } else if (progress > 0.01f || bounce > 0.01f) {
+                drawHoverSurface(ctx, cx + v * third, oy + 2, third, 16, 5,
+                        0x00000000, 0x24324250, progress, bounce, ca);
+            }
             txtCentered(ctx, names[v], cx + v * third + third / 2, oy + 6,
                     alpha(packView == v ? 0xFFFFFFFF : MUTED, ca));
         }
@@ -1260,7 +1269,7 @@ public class MenuScreen extends Screen {
                 txt(ctx, textRenderer.trimToWidth(hit.description(), textW), cx + 8, ry + 14, alpha(MUTED, ca));
             }
             txt(ctx, textRenderer.trimToWidth("by " + hit.author() + "  -  " + compact(hit.downloads()) + " downloads", textW),
-                    cx + 8, ry + 24, alpha(0xFF6A6A6A, ca));
+                    cx + 8, ry + 24, alpha(MUTED, ca * 0.92f));
 
             // action button
             String packId = ModrinthPacks.packIdFor(hit.id());
@@ -1281,7 +1290,9 @@ public class MenuScreen extends Screen {
             int bx = cx + cw - 64;
             int by = ry + 9;
             boolean bo = inside(mx, my, bx, by, 56, 18) && inside(mx, my, cx, top, cw, h);
-            rrect(ctx, bx, by, 56, 18, 5, alpha(bo ? mix(base, 0xFFFFFFFF, 0.15f) : base, ca));
+            float progress = hoverSpring(6000 + j, bo);
+            float bounce = lastHoverBounce;
+            drawHoverSurface(ctx, bx, by, 56, 18, 7, base, mix(base, 0xFFFFFFFF, 0.15f), progress, bounce, ca);
             txtCentered(ctx, label, bx + 28, by + 5, alpha(TEXT, ca));
         }
     }

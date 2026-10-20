@@ -1,6 +1,11 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.14.7 - Refined hover motion and clearer text
+- Softened the menu's spring hover effect to use a restrained one-pixel lift and glow across controls, including pack actions and pack tabs.
+- Increased the contrast of secondary labels and added text shadowing so menu copy stays readable over the translucent panel.
+- Applied the changes to Minecraft 1.21.11 and 26.2.
+
 ## 1.14.6 - Clearer menu and spring hover feedback
 - Added a small spring bounce and brighter hover surface to menu rows, tabs, preset cards, profile actions, and buttons so the current selection is easy to spot.
 - Applied the same hover behavior to the layout editor and update chip on Minecraft 1.21.11 and 26.2.
