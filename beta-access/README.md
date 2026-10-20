@@ -28,21 +28,23 @@ From the repository:
    npx wrangler d1 migrations apply habib-client-beta-access --remote
    ```
 
-4. Generate a long, random admin token in a password manager, then store it as a Cloudflare Worker secret:
-
-   ```sh
-   npx wrangler secret put BETA_ADMIN_TOKEN
-   ```
-
-   Wrangler prompts for the value. Keep it out of Git and do not give it to testers.
-
-5. Deploy the Worker:
+4. Deploy the Worker once:
 
    ```sh
    npx wrangler deploy
    ```
 
-   Wrangler prints an HTTPS `workers.dev` URL. Open that URL to use the admin page. Enter the admin token, then add each tester's Minecraft UUID and a unique password of at least 12 characters. Passwords cannot be retrieved after saving; reset one to issue a replacement. Use **Revoke** to remove access.
+   If prompted, choose or create your `workers.dev` subdomain. Save the HTTPS URL Wrangler prints.
+
+5. Generate a long, random admin token in a password manager, then store it as a Cloudflare Worker secret:
+
+   ```sh
+   npx wrangler secret put BETA_ADMIN_TOKEN
+   ```
+
+   Wrangler prompts for the value and deploys the secret to the Worker. Keep it out of Git and do not give it to testers.
+
+6. Open the saved HTTPS URL to use the admin page. Enter the admin token, then add each tester's Minecraft UUID and a unique password of at least 12 characters. Passwords cannot be retrieved after saving; reset one to issue a replacement. Use **Revoke** to remove access.
 
 ## Configure and release the client
 
