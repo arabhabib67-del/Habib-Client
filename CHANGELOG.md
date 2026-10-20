@@ -1,6 +1,10 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.14.6 - Clearer menu and spring hover feedback
+- Added a small spring bounce and brighter hover surface to menu rows, tabs, preset cards, profile actions, and buttons so the current selection is easy to spot.
+- Applied the same hover behavior to the layout editor and update chip on Minecraft 1.21.11 and 26.2.
+
 ## 1.14.5 - Modern glass menu
 - Reworked the client menu with a spacious translucent glass panel, soft highlights, and rounded navigation and setting cards.
 - Grouped HUD module controls, added an enabled count and clear ON/OFF labels, and redesigned animated toggles and scale controls.

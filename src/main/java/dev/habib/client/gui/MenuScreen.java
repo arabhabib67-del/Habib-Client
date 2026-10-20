@@ -97,6 +97,8 @@ public class MenuScreen extends Screen {
     private float frameDt = 0.016f;
     private int hoverCounter;
     private final Map<Integer, Float> rowHover = new HashMap<>();
+    private final Map<Integer, Float> rowHoverVelocity = new HashMap<>();
+    private float lastHoverBounce;
     private final Map<Integer, Boolean> keyWas = new HashMap<>();
     private final float[] tabScroll = new float[TABS.length];
     private boolean sbDrag;
@@ -298,12 +300,49 @@ public class MenuScreen extends Screen {
         return Math.max(0f, modulesFor(tab.category).size() * ROW_STRIDE + 27 - ch);
     }
 
-    /** Smoothly animated 0..1 hover value for rows that have no state of their own (keyed by draw order). */
-    private float rowHoverAnim(boolean over) {
+    /** Spring hover state with a brief overshoot, keyed so each control animates independently. */
+    private float hoverSpring(int key, boolean over) {
+        float value = rowHover.getOrDefault(key, 0f);
+        float velocity = rowHoverVelocity.getOrDefault(key, 0f);
+        float target = over ? 1f : 0f;
+        int steps = Math.max(1, Math.min(8, (int) Math.ceil(frameDt / 0.01f)));
+        float step = frameDt / steps;
+        for (int i = 0; i < steps; i++) {
+            velocity += ((target - value) * 330f - velocity * 18f) * step;
+            value += velocity * step;
+        }
+        if (Math.abs(value - target) < 0.002f && Math.abs(velocity) < 0.025f) {
+            value = target;
+            velocity = 0f;
+        }
+        rowHover.put(key, value);
+        rowHoverVelocity.put(key, velocity);
+        lastHoverBounce = over ? Math.max(0f, value - 1f) : Math.max(0f, -value);
+        return Math.max(0f, Math.min(1f, value));
+    }
+
+    private void drawHoverSurface(DrawContext ctx, int x, int y, int w, int h, int radius,
+                                  int idle, int active, float progress, float bounce, float a) {
+        drawHoverBounce(ctx, x, y, w, h, radius, bounce, a);
+        rrect(ctx, x, y, w, h, radius, alpha(mix(idle, active, progress), a));
+    }
+
+    private void drawHoverBounce(DrawContext ctx, int x, int y, int w, int h, int radius,
+                                 float bounce, float a) {
+        float pop = Math.min(1f, bounce * 5f);
+        int spread = Math.round(pop * 3f);
+        int lift = Math.round(pop * 2f);
+        if (pop > 0.01f) {
+            rrect(ctx, x - spread / 2, y - lift, w + spread, h + spread / 2,
+                    radius + spread / 2, alpha(0x48FFFFFF, a * pop));
+        }
+    }
+
+    private void hoverRowCard(DrawContext ctx, int x, int y, int w, int h, int radius,
+                              boolean over, float a) {
         int key = tab.ordinal() * 64 + (hoverCounter++ & 63);
-        float v = approach(rowHover.getOrDefault(key, 0f), over ? 1f : 0f, frameDt, 18f);
-        rowHover.put(key, v);
-        return v;
+        float progress = hoverSpring(key, over);
+        drawHoverSurface(ctx, x, y, w, h, radius, ROW, ROW_HOVER, progress, lastHoverBounce, a);
     }
 
     private boolean keyEdge(int key) {
@@ -431,7 +470,13 @@ public class MenuScreen extends Screen {
 
         // version + update status (click to check / install)
         boolean pillOver = inside(mx, my, pillX() - 6, py + 8, pillW() + 12, 22);
+        float pillMotion = hoverSpring(4091, pillOver);
+        float pillBounce = lastHoverBounce;
         int pillCol = Updater.highlighted() ? ACCENT : pillOver ? TEXT : MUTED;
+        if (pillMotion > 0.01f || pillBounce > 0.01f) {
+            drawHoverSurface(ctx, pillX() - 6, py + 9, pillW() + 12, 20, 10,
+                    0x10151D25, 0x24324250, pillMotion, pillBounce, a);
+        }
         glassBorder(ctx, pillX() - 6, py + 9, pillW() + 12, 20, 10,
                 alpha(pillOver || Updater.highlighted() ? ACCENT : 0x48FFFFFF, a * 0.65f),
                 alpha(0x20FFFFFF, a));
@@ -442,7 +487,10 @@ public class MenuScreen extends Screen {
 
         // close button
         boolean closeHover = inside(mx, my, px + pw - 32, py + 8, 22, 22);
-        if (closeHover) rrect(ctx, px + pw - 32, py + 8, 22, 22, 11, alpha(0x30FFFFFF, a));
+        float closeMotion = hoverSpring(4090, closeHover);
+        float closeBounce = lastHoverBounce;
+        drawHoverSurface(ctx, px + pw - 32, py + 8, 22, 22, 11,
+                0x10343E4B, 0x38FFFFFF, closeMotion, closeBounce, a);
         txtCentered(ctx, "x", px + pw - 21, py + 15, alpha(closeHover ? ACCENT : MUTED, a));
 
         // sidebar
@@ -461,10 +509,15 @@ public class MenuScreen extends Screen {
 
         for (int i = 0; i < TABS.length; i++) {
             boolean over = inside(mx, my, px + 8, tabY(i), SIDE_W - 16, TAB_H);
-            tabHover[i] = approach(tabHover[i], over ? 1f : 0f, dt, 18f);
+            tabHover[i] = hoverSpring(2048 + i, over);
+            float tabBounce = lastHoverBounce;
             float strength = Math.max(TABS[i] == tab ? 1f : 0f, tabHover[i] * 0.8f);
-            if (TABS[i] != tab && tabHover[i] > 0.02f) {
-                rrect(ctx, px + 8, tabY(i), SIDE_W - 16, TAB_H, 9, alpha(0x28FFFFFF, a * tabHover[i]));
+            if (TABS[i] != tab && (tabHover[i] > 0.01f || tabBounce > 0.01f)) {
+                drawHoverSurface(ctx, px + 8, tabY(i), SIDE_W - 16, TAB_H, 9,
+                        0x10151D25, 0x36FFFFFF, tabHover[i], tabBounce, a);
+            } else if (TABS[i] == tab && tabBounce > 0.01f) {
+                drawHoverBounce(ctx, px + 8, tabY(i), SIDE_W - 16, TAB_H, 9,
+                        tabBounce, a);
             }
             txt(ctx, TABS[i].label, px + 20, tabY(i) + 5, alpha(mix(MUTED, TEXT, strength), a));
             if (TABS[i].category == null && i < 10) {
@@ -530,9 +583,11 @@ public class MenuScreen extends Screen {
             if (ry + ROW_H < cy || ry > cy + ch) continue;
 
             boolean over = inside(mx, my, cx, ry, cw, ROW_H) && inside(mx, my, cx, cy, cw, ch);
-            hover[idx] = approach(hover[idx], over ? 1f : 0f, dt, 18f);
+            hover[idx] = hoverSpring(1024 + idx, over);
+            float bounce = lastHoverBounce;
 
             int rowFill = mix(ROW, ROW_HOVER, 0.18f + hover[idx] * 0.58f);
+            drawHoverBounce(ctx, cx, ry, cw, ROW_H, 9, bounce, ca);
             glassBorder(ctx, cx, ry, cw, ROW_H, 9, alpha(0x30FFFFFF, ca * (0.55f + hover[idx] * 0.45f)), alpha(rowFill, ca));
             rrect(ctx, cx + 9, ry + 8, 3, ROW_H - 16, 2,
                     alpha(mix(OFF, m.color | 0xFF000000, toggle[idx]), ca));
@@ -584,7 +639,12 @@ public class MenuScreen extends Screen {
 
     private void smallButton(DrawContext ctx, int mx, int my, int x, int y, String label, float a) {
         boolean over = inside(mx, my, x, y, 16, 16);
-        glassBorder(ctx, x, y, 16, 16, 8, alpha(over ? ACCENT : 0x55FFFFFF, a), alpha(over ? 0x35FFFFFF : 0x16FFFFFF, a));
+        float progress = hoverSpring(8192 + x * 1024 + y, over);
+        float bounce = lastHoverBounce;
+        drawHoverBounce(ctx, x, y, 16, 16, 8, bounce, a);
+        glassBorder(ctx, x, y, 16, 16, 8,
+                alpha(mix(0x55FFFFFF, ACCENT, progress), a),
+                alpha(mix(0x16FFFFFF, 0x35FFFFFF, progress), a));
         txtCentered(ctx, label, x + 8, y + 4, alpha(over ? TEXT : MUTED, a));
     }
 
@@ -622,7 +682,7 @@ public class MenuScreen extends Screen {
         // only-on-hit toggle
         onHitToggle = approach(onHitToggle, HabibConfig.swingOnlyOnHit ? 1f : 0f, dt, 16f);
         boolean overHit = inside(mx, my, cx, oy + 56, cw, 22);
-        rrect(ctx, cx, oy + 56, cw, 22, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(overHit)), ca));
+        hoverRowCard(ctx, cx, oy + 56, cw, 22, 8, overHit, ca);
         stripe(ctx, cx, oy + 56, 22, onHitToggle, ACCENT, ca);
         txt(ctx, "Full animation only on hit", cx + 10, oy + 63, alpha(mix(MUTED, TEXT, onHitToggle), ca));
         drawSwitch(ctx, cx + cw - 40, oy + 58, onHitToggle, ca);
@@ -721,7 +781,7 @@ public class MenuScreen extends Screen {
 
     private void optimizeRow(DrawContext ctx, int mx, int my, int y, String title, String sub, float t, float ca) {
         boolean over = inside(mx, my, cx, y, cw, 30);
-        rrect(ctx, cx, y, cw, 30, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
+        hoverRowCard(ctx, cx, y, cw, 30, 9, over, ca);
         stripe(ctx, cx, y, 30, t, ACCENT, ca);
         txt(ctx, title, cx + 10, y + 5, alpha(mix(MUTED, TEXT, t), ca));
         txt(ctx, textRenderer.trimToWidth(sub, cw - 60), cx + 10, y + 16, alpha(MUTED, ca));
@@ -801,7 +861,10 @@ public class MenuScreen extends Screen {
     }
 
     private void profileButton(DrawContext ctx, boolean over, int x, int y, int w, int h, String label, int base, float ca) {
-        rrect(ctx, x, y, w, h, 5, alpha(over ? mix(base, 0xFFFFFFFF, 0.15f) : base, ca));
+        float progress = hoverSpring(100000 + x * 1024 + y, over);
+        float bounce = lastHoverBounce;
+        drawHoverBounce(ctx, x, y, w, h, 7, bounce, ca);
+        rrect(ctx, x, y, w, h, 7, alpha(mix(base, mix(base, 0xFFFFFFFF, 0.15f), progress), ca));
         txtCentered(ctx, label, x + w / 2, y + (h - 8) / 2, alpha(TEXT, ca));
     }
 
@@ -838,7 +901,7 @@ public class MenuScreen extends Screen {
             if (ry + PROFILE_ROW_H < top || ry > top + h) continue;
             boolean clip = inside(mx, my, cx, top, cw, h);
             boolean over = clip && inside(mx, my, cx, ry, cw, PROFILE_ROW_H);
-            rrect(ctx, cx, ry, cw, PROFILE_ROW_H, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
+            hoverRowCard(ctx, cx, ry, cw, PROFILE_ROW_H, 8, over, ca);
             stripe(ctx, cx, ry, PROFILE_ROW_H, over ? 1f : 0f, ACCENT, ca);
 
             int dx = profileDeleteX();
@@ -1005,9 +1068,10 @@ public class MenuScreen extends Screen {
             int y = oy + 34;
             boolean active = presetActive(p);
             boolean over = inside(mx, my, x, y, w, 112);
-            presetHover[k] = approach(presetHover[k], over ? 1f : 0f, dt, 16f);
+            presetHover[k] = hoverSpring(3072 + k, over);
+            float cardBounce = lastHoverBounce;
             if (active) rrect(ctx, x - 1, y - 1, w + 2, 114, 6, alpha(ACCENT, ca));
-            rrect(ctx, x, y, w, 112, 5, alpha(mix(ROW, ROW_HOVER, presetHover[k]), ca));
+            drawHoverSurface(ctx, x, y, w, 112, 10, ROW, ROW_HOVER, presetHover[k], cardBounce, ca);
             txtCentered(ctx, p.name(), x + w / 2, y + 8, alpha(TEXT, ca));
             ctx.fill(x + 10, y + 21, x + w - 10, y + 22, alpha(OFF, ca));
             for (int l = 0; l < p.lines().length; l++) {
@@ -1015,8 +1079,11 @@ public class MenuScreen extends Screen {
                         alpha(MUTED, ca));
             }
             int by = y + 86;
-            rrect(ctx, x + 8, by, w - 16, 18, 5,
-                    alpha(active ? OFF : mix(ACCENT_DIM, 0xFFFFFFFF, presetHover[k] * 0.15f), ca));
+            boolean applyOver = !active && inside(mx, my, x + 8, by, w - 16, 18);
+            float applyProgress = hoverSpring(3100 + k, applyOver);
+            float applyBounce = lastHoverBounce;
+            drawHoverSurface(ctx, x + 8, by, w - 16, 18, 8,
+                    active ? OFF : ACCENT_DIM, active ? OFF : ACCENT, applyProgress, applyBounce, ca);
             txtCentered(ctx, active ? "Active" : "Apply", x + w / 2, by + 5, alpha(active ? MUTED : TEXT, ca));
         }
         txt(ctx, presetNote.isEmpty() ? "Changes your normal video settings." : presetNote, cx, oy + 156,
@@ -1182,7 +1249,7 @@ public class MenuScreen extends Screen {
             if (ry + PACK_ROW_H < top || ry > top + h) continue;
             Hit hit = hits.get(j);
             boolean over = inside(mx, my, cx, ry, cw, PACK_ROW_H) && inside(mx, my, cx, top, cw, h);
-            rrect(ctx, cx, ry, cw, PACK_ROW_H, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
+            hoverRowCard(ctx, cx, ry, cw, PACK_ROW_H, 9, over, ca);
 
             int textW = cw - 84;
             txt(ctx, textRenderer.trimToWidth(hit.title(), textW), cx + 8, ry + 4, alpha(TEXT, ca));
@@ -1238,7 +1305,7 @@ public class MenuScreen extends Screen {
             packToggle.put(p.getId(), t);
 
             boolean over = inside(mx, my, cx, ry, cw, INSTALLED_ROW_H) && inside(mx, my, cx, top, cw, h);
-            rrect(ctx, cx, ry, cw, INSTALLED_ROW_H, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
+            hoverRowCard(ctx, cx, ry, cw, INSTALLED_ROW_H, 8, over, ca);
             stripe(ctx, cx, ry, INSTALLED_ROW_H, t, ACCENT, ca);
             String name = p.getDisplayName().getString();
             txt(ctx, textRenderer.trimToWidth(name, cw - 60), cx + 10, ry + 9, alpha(mix(MUTED, TEXT, t), ca));
@@ -1287,7 +1354,7 @@ public class MenuScreen extends Screen {
 
     private void armorOptionRow(DrawContext ctx, int mx, int my, int y, String label, String value, float ca) {
         boolean over = inside(mx, my, cx, y, cw, 22);
-        rrect(ctx, cx, y, cw, 22, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
+        hoverRowCard(ctx, cx, y, cw, 22, 8, over, ca);
         txt(ctx, label, cx + 10, y + 7, alpha(TEXT, ca));
         txtRight(ctx, "< " + value + " >", cx + cw - 10, y + 7, alpha(over ? ACCENT : MUTED, ca));
     }
@@ -1299,17 +1366,23 @@ public class MenuScreen extends Screen {
 
         boolean overA = inside(mx, my, cx, oy + 48, 150, 24);
         boolean overB = inside(mx, my, cx + 160, oy + 48, 110, 24);
-        buttonHoverA = approach(buttonHoverA, overA ? 1f : 0f, dt, 18f);
-        buttonHoverB = approach(buttonHoverB, overB ? 1f : 0f, dt, 18f);
-        rrect(ctx, cx, oy + 48, 150, 24, 6, alpha(mix(ACCENT_DIM, ACCENT, buttonHoverA), ca));
+        float buttonBounceA = hoverSpring(4001, overA);
+        float bounceA = lastHoverBounce;
+        float buttonBounceB = hoverSpring(4002, overB);
+        float bounceB = lastHoverBounce;
+        buttonHoverA = buttonBounceA;
+        buttonHoverB = buttonBounceB;
+        drawHoverSurface(ctx, cx, oy + 48, 150, 24, 10, ACCENT_DIM, ACCENT,
+                buttonHoverA, bounceA, ca);
         txtCentered(ctx, "Open layout editor", cx + 75, oy + 56, alpha(0xFFFFFFFF, ca));
-        rrect(ctx, cx + 160, oy + 48, 110, 24, 6, alpha(mix(ROW, ROW_HOVER, buttonHoverB), ca));
+        drawHoverSurface(ctx, cx + 160, oy + 48, 110, 24, 10, ROW, ROW_HOVER,
+                buttonHoverB, bounceB, ca);
         txtCentered(ctx, "Reset layout", cx + 215, oy + 56, alpha(mix(MUTED, TEXT, buttonHoverB), ca));
 
         // background box on/off
         bgToggle = approach(bgToggle, HabibConfig.hudBackground ? 1f : 0f, dt, 16f);
         boolean overC = inside(mx, my, cx, oy + 84, cw, 26);
-        rrect(ctx, cx, oy + 84, cw, 26, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(overC)), ca));
+        hoverRowCard(ctx, cx, oy + 84, cw, 26, 8, overC, ca);
         stripe(ctx, cx, oy + 84, 26, bgToggle, ACCENT, ca);
         txt(ctx, "Box behind HUD", cx + 10, oy + 93, alpha(mix(MUTED, TEXT, bgToggle), ca));
         txtRight(ctx, HabibConfig.hudBackground ? "On" : "Text only", cx + cw - 44, oy + 93, alpha(MUTED, ca));
@@ -1322,7 +1395,7 @@ public class MenuScreen extends Screen {
         armorOptionRow(ctx, mx, my, oy + 132, "Layout", ARMOR_LAYOUTS[HabibConfig.armorLayout], ca);
         armorOptionRow(ctx, mx, my, oy + 156, "Durability", ARMOR_DURABILITY[HabibConfig.armorDurability], ca);
         boolean overH = inside(mx, my, cx, oy + 180, cw, 22);
-        rrect(ctx, cx, oy + 180, cw, 22, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(overH)), ca));
+        hoverRowCard(ctx, cx, oy + 180, cw, 22, 8, overH, ca);
         stripe(ctx, cx, oy + 180, 22, heldToggle, ACCENT, ca);
         txt(ctx, "Show held item", cx + 10, oy + 187, alpha(mix(MUTED, TEXT, heldToggle), ca));
         drawSwitch(ctx, cx + cw - 40, oy + 182, heldToggle, ca);
@@ -1357,11 +1430,15 @@ public class MenuScreen extends Screen {
 
         boolean overA = inside(mx, my, width / 2 - 104, height - 32, 100, 22);
         boolean overB = inside(mx, my, width / 2 + 4, height - 32, 100, 22);
-        buttonHoverA = approach(buttonHoverA, overA ? 1f : 0f, dt, 18f);
-        buttonHoverB = approach(buttonHoverB, overB ? 1f : 0f, dt, 18f);
-        rrect(ctx, width / 2 - 104, height - 32, 100, 22, 6, alpha(mix(0xE0131313, ACCENT, buttonHoverA), open));
+        buttonHoverA = hoverSpring(4001, overA);
+        float bounceA = lastHoverBounce;
+        buttonHoverB = hoverSpring(4002, overB);
+        float bounceB = lastHoverBounce;
+        drawHoverSurface(ctx, width / 2 - 104, height - 32, 100, 22, 9,
+                0xE0131313, ACCENT, buttonHoverA, bounceA, open);
         txtCentered(ctx, "Done", width / 2 - 54, height - 25, alpha(TEXT, open));
-        rrect(ctx, width / 2 + 4, height - 32, 100, 22, 6, alpha(mix(0xE0131313, ROW_HOVER, buttonHoverB), open));
+        drawHoverSurface(ctx, width / 2 + 4, height - 32, 100, 22, 9,
+                0xE0131313, ROW_HOVER, buttonHoverB, bounceB, open);
         txtCentered(ctx, "Reset layout", width / 2 + 54, height - 25, alpha(TEXT, open));
     }
 
