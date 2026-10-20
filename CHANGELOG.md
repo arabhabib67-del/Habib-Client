@@ -7,6 +7,9 @@ Version numbers for 1.1.0 and up were assigned afterwards to group the changes i
 - Retains the last good track during brief media-session errors and retries artwork downloads after a temporary failure.
 - Updated the separate 26.2 build for its changed HUD, screen, toast and item-rendering APIs.
 
+## 1.14.3 - Spotify HUD stays visible
+- Keeps the Spotify card visible during gameplay when no track metadata is available, showing a “Nothing playing” placeholder while keeping its in-game controls available.
+
 ## 1.14.2 - HUD layout center guides
 - Added a labeled screen-center crosshair to the HUD layout editor so it is easy to see when an element is centered.
 - HUD elements now snap to the screen's horizontal and vertical center when dragged within 8 pixels of either guide.

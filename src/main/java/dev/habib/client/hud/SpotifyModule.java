@@ -11,6 +11,8 @@ public class SpotifyModule extends HudModule {
     private static final int RED = 0xFFE5484D;
     private static final NowPlaying.Snapshot SAMPLE =
             new NowPlaying.Snapshot("Artist", "Song title", false, 135_000L, 195_000L, 0L, "");
+    private static final NowPlaying.Snapshot IDLE =
+            new NowPlaying.Snapshot("Spotify", "Nothing playing", false, 0L, 0L, 0L, "");
 
     public SpotifyModule(int x, int y) {
         super("spotify", "Spotify", x, y);
@@ -22,8 +24,7 @@ public class SpotifyModule extends HudModule {
     protected void render(DrawContext ctx, MinecraftClient mc, boolean editing) {
         NowPlaying.Snapshot s = NowPlaying.snapshot();
         if (s == null || s.title().isEmpty()) {
-            if (!editing) return;
-            s = SAMPLE;
+            s = editing ? SAMPLE : IDLE;
         }
         width = W;
         height = H;
