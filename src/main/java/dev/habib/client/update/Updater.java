@@ -60,6 +60,7 @@ public final class Updater {
     private static Path currentJar;
     private static Path stageDir;
     private static volatile Path stagedJar;
+    private static volatile String availabilityNotice = "";
     private static boolean hookInstalled;
     private static boolean noticeSent;
     private static boolean installedNow;
@@ -124,20 +125,17 @@ public final class Updater {
             set(State.DISABLED, "no repo set");
             return;
         }
-        if (HabibConfig.autoUpdate) {
-            Thread t = new Thread(() -> {
-                try {
-                    Thread.sleep(8000L); // stay out of the way of game start-up
-                } catch (InterruptedException e) {
-                    return;
-                }
-                check(true);
-            }, "habib-update-start");
-            t.setDaemon(true);
-            t.start();
-        } else {
-            set(State.IDLE, "");
-        }
+        boolean autoDownload = HabibConfig.autoUpdate;
+        Thread t = new Thread(() -> {
+            try {
+                Thread.sleep(8000L); // stay out of the way of game start-up
+            } catch (InterruptedException e) {
+                return;
+            }
+            check(autoDownload);
+        }, "habib-update-start");
+        t.setDaemon(true);
+        t.start();
     }
 
     private static String readBakedRepo(ModContainer c) {
@@ -214,6 +212,9 @@ public final class Updater {
                 assetUrl = url;
                 assetSha = digest.substring(7);
                 set(State.AVAILABLE, "");
+                availabilityNotice = autoDownload
+                        ? "[Habib] Update " + ver + " is available; downloading automatically."
+                        : "[Habib] Update " + ver + " is available. Click the version in the Habib Client menu to download it.";
                 if (autoDownload) download();
             } catch (Exception e) {
                 set(State.ERROR, brief(e));
@@ -410,7 +411,13 @@ public final class Updater {
     }
 
     private static void tick(MinecraftClient mc) {
-        if (!noticeSent && mc.player != null && state == State.READY) {
+        if (mc.player == null) return;
+        String availableNotice = availabilityNotice;
+        if (!availableNotice.isEmpty()) {
+            availabilityNotice = "";
+            mc.inGameHud.getChatHud().addMessage(Text.literal(availableNotice));
+        }
+        if (!noticeSent && state == State.READY) {
             noticeSent = true;
             mc.inGameHud.getChatHud().addMessage(Text.literal(installedNow
                     ? "[Habib] Updated to " + latest + ". Restart the game to use it."

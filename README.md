@@ -60,12 +60,12 @@ The mod can update itself from your own GitHub repo, so you never have to send o
 4. Download that jar once, put it in your `mods` folder, and start the game.
 
 **Every update after that**
-Raise `mod_version` in `gradle.properties` (for example `1.13.0` to `1.13.1`), commit and push. The workflow publishes a new release. Next time you launch the game the mod finds it, downloads it, checks it, and swaps it in when you close the game. A new version only counts if its number is higher than the one you have.
+Raise `mod_version` in `gradle.properties`, commit and push. The workflow publishes a new release. Next time you launch the game the mod checks for it and shows an in-game chat notification when a newer version is available. With auto-update on, it downloads the update, verifies it, and installs it when you close the game. A new version only counts if its number is higher than the one you have.
 
 **In the game**
 The menu header shows your version and the update status (for example `v1.11.0 - Up to date`). Click it to check right now, or to install when an update is waiting. A chat line tells you when an update has been downloaded.
 
-**Settings** (`config/habibclient.json`): `autoUpdate` (true/false) checks and downloads on launch; with false the mod only checks when you click the header. `updateRepo` overrides the repo built into the jar. With no repo set the updater stays off.
+**Settings** (`config/habibclient.json`): `autoUpdate` (true/false) checks on launch; true also downloads automatically, while false only notifies you and waits for you to click the version in the menu header. `updateRepo` overrides the repo built into the jar. With no repo set the updater stays off.
 
 **Safety**: the file must come from `github.com/<your repo>/releases/download`, must match the SHA-256 checksum GitHub lists for it, and must be this mod (id `habibclient`) at the announced version, or it is thrown away. It is only installed after the game has closed, the old jar is kept aside until the new one is in place, and nothing happens in a development build. Keep 2-step login on the GitHub account that owns the repo: whoever can publish a release there can change the mod on your computer.
 
