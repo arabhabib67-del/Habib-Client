@@ -1,11 +1,11 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
-## 1.14.1 - Spotify artwork and playback controls
-- Added the Spotify cover image to the now-playing HUD when the desktop player exposes artwork. It loads in the background and keeps a colored fallback tile if artwork is unavailable.
-- Added configurable F7 previous, F8 play/pause, and F9 next shortcuts. Commands run outside Minecraft's game thread.
-- Retains the last good track during brief media-session errors and retries artwork downloads after a temporary failure.
-- Updated the separate 26.2 build for its changed HUD, screen, toast and item-rendering APIs.
+## 1.14.4 - More reliable Spotify connection
+- Uses Spotify's Apple-event property IDs directly so metadata polling does not rely on scripting-dictionary resolution.
+- macOS now reads song details separately from optional cover art, so an artwork lookup failure cannot hide the track.
+- Corrected macOS track duration conversion for Spotify's seconds-based value; Windows keeps using its system media session.
+- Shows a clearer Automation permission hint when macOS blocks Spotify access.
 
 ## 1.14.3 - Spotify HUD stays visible
 - Keeps the Spotify card visible during gameplay when no track metadata is available, showing a “Nothing playing” placeholder while keeping its in-game controls available.
@@ -13,6 +13,12 @@ Version numbers for 1.1.0 and up were assigned afterwards to group the changes i
 ## 1.14.2 - HUD layout center guides
 - Added a labeled screen-center crosshair to the HUD layout editor so it is easy to see when an element is centered.
 - HUD elements now snap to the screen's horizontal and vertical center when dragged within 8 pixels of either guide.
+
+## 1.14.1 - Spotify artwork and playback controls
+- Added the Spotify cover image to the now-playing HUD when the desktop player exposes artwork. It loads in the background and keeps a colored fallback tile if artwork is unavailable.
+- Added configurable F7 previous, F8 play/pause, and F9 next shortcuts. Commands run outside Minecraft's game thread.
+- Retains the last good track during brief media-session errors and retries artwork downloads after a temporary failure.
+- Updated the separate 26.2 build for its changed HUD, screen, toast and item-rendering APIs.
 
 ## 1.14.0 - Minecraft 26.2 support
 - Added a separate Minecraft 26.2 build while keeping the existing Minecraft 1.21.11 build.

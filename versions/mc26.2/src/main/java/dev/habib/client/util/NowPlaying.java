@@ -193,16 +193,33 @@ public final class NowPlaying {
             if (out.startsWith("T:")) applyWindowTitle(out.substring(2).trim());
             else applyTabbed(out, 1.0, 1.0);
         } else if (mac()) {
-            String out = run(List.of("osascript", "-e",
-                    "if application \"Spotify\" is running then tell application \"Spotify\" to "
-                            + "(artist of current track) & \"\\t\" & (name of current track) & \"\\t\" & (player state as string)"
-                            + " & \"\\t\" & (player position as string) & \"\\t\" & (duration of current track as string)"
-                            + " & \"\\t\" & (artwork url of current track as text) else return \"\"")).trim();
+            // Use Spotify's Apple-event property codes directly so osascript does not depend on
+            // resolving the app's scripting dictionary before the metadata request runs.
+            String script = String.join("\n",
+                    "if application \"Spotify\" is running then",
+                    "    tell application \"Spotify\"",
+                    "        set currentTrack to «property pTrk»",
+                    "        set trackArtist to «property pArt» of currentTrack",
+                    "        set trackTitle to «property pnam» of currentTrack",
+                    "        set playbackState to «property pPlS» as string",
+                    "        set playbackPosition to «property pPos» as string",
+                    "        set trackDuration to «property pDur» of currentTrack as string",
+                    "        set coverURL to \"\"",
+                    "        try",
+                    "            set coverURL to «property aUrl» of currentTrack as text",
+                    "        end try",
+                    "        set tabChar to ASCII character 9",
+                    "        trackArtist & tabChar & trackTitle & tabChar & playbackState & tabChar & playbackPosition & tabChar & trackDuration & tabChar & coverURL",
+                    "    end tell",
+                    "else",
+                    "    \"\"",
+                    "end if");
+            String out = run(List.of("osascript", "-e", script)).trim();
             if (out.contains("-1743") || out.toLowerCase(Locale.ROOT).contains("not authorized")) {
-                accept(new Snapshot("Turn on Automation > Spotify", "Permission needed", false, 0, 0,
+                accept(new Snapshot("Allow Spotify access", "Permission needed", false, 0, 0,
                         System.nanoTime(), ""));
             } else {
-                applyTabbed(out, 1000.0, 1.0); // position in seconds, duration in milliseconds
+                applyTabbed(out, 1000.0, 1000.0); // Spotify reports both values in seconds
             }
         } else {
             String out = run(List.of("playerctl", "-p", "spotify", "metadata", "--format",
