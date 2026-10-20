@@ -1,6 +1,7 @@
 package dev.habib.client.util;
 
 import dev.habib.client.config.HabibConfig;
+import dev.habib.client.beta.BetaAccess;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -32,7 +33,7 @@ public final class Effects {
     /** Called right after a totem pop was counted for this player. */
     public static void onPop(PlayerEntity p) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null) return;
+        if (!BetaAccess.isAuthorized() || mc.player == null) return;
         boolean self = p.getUuid().equals(mc.player.getUuid());
         PlayerEntity target = TotemPops.target();
         boolean tgt = target != null && p.getUuid().equals(target.getUuid());
@@ -51,7 +52,7 @@ public final class Effects {
 
     private static void render(DrawContext ctx) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || mc.options.hudHidden || mc.currentScreen != null) return;
+        if (!BetaAccess.isAuthorized() || mc.player == null || mc.options.hudHidden || mc.currentScreen != null) return;
         long now = System.currentTimeMillis();
         int w = ctx.getScaledWindowWidth();
         int h = ctx.getScaledWindowHeight();

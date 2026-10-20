@@ -1,6 +1,7 @@
 package dev.habib.client.util;
 
 import dev.habib.client.config.HabibConfig;
+import dev.habib.client.beta.BetaAccess;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -19,7 +20,7 @@ public final class CrystalOptimizer {
 
     public static void init() {
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
-            if (!world.isClient() || !HabibConfig.crystalOptimizer || !(entity instanceof EndCrystalEntity)) {
+            if (!BetaAccess.isAuthorized() || !world.isClient() || !HabibConfig.crystalOptimizer || !(entity instanceof EndCrystalEntity)) {
                 return ActionResult.PASS;
             }
             // weakness without strength can reduce the hit to 0 damage: the crystal would survive

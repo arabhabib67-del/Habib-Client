@@ -24,12 +24,16 @@ processResources {
     inputs.property "minecraftVersion", project.minecraft_version
     inputs.property "minecraftRange", "~${project.minecraft_version}"
     inputs.property "javaVersion", "25"
+    inputs.property "betaAccessUrl", (project.findProperty('beta_access_url') ?: '')
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
                "updateRepo": project.update_repo,
                "minecraftVersion": project.minecraft_version,
                "minecraftRange": "~${project.minecraft_version}",
                "javaVersion": "25"
+    }
+    filesMatching("habib-beta.properties") {
+        expand "betaAccessUrl": (project.findProperty('beta_access_url') ?: '')
     }
 }
 

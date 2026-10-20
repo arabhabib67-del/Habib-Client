@@ -1,6 +1,8 @@
 package dev.habib.client;
 
 import dev.habib.client.config.HabibConfig;
+import dev.habib.client.beta.BetaAccess;
+import dev.habib.client.gui.BetaAccessScreen;
 import dev.habib.client.gui.MenuScreen;
 import dev.habib.client.hud.HudManager;
 import dev.habib.client.update.Updater;
@@ -53,6 +55,13 @@ public class HabibClient implements ClientModInitializer {
         ConsumableOptimizer.init();
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            if (!BetaAccess.isAuthorized()) {
+                stopZoom(mc);
+                if (!(mc.currentScreen instanceof BetaAccessScreen)) {
+                    mc.setScreen(new BetaAccessScreen(mc.currentScreen));
+                }
+                return;
+            }
             while (openEditorKey.wasPressed()) {
                 if (mc.currentScreen == null) {
                     mc.setScreen(new MenuScreen());

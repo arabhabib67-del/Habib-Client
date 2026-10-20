@@ -1,6 +1,7 @@
 package dev.habib.client.util;
 
 import dev.habib.client.config.HabibConfig;
+import dev.habib.client.beta.BetaAccess;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.util.math.MatrixStack;
@@ -63,6 +64,7 @@ public final class SwingAnimator {
 
     /** Called from the mixin. Returns true if the vanilla swing offset should be skipped. */
     public static boolean apply(MatrixStack m, Arm arm, float p) {
+        if (!BetaAccess.isAuthorized()) return false;
         int style = HabibConfig.swingStyle;
         if (style <= 0 || style >= COUNT || p <= 0f) return false;
         if (!animatedSwing(arm)) return false;

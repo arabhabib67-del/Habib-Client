@@ -1,6 +1,7 @@
 package dev.habib.client.mixin;
 
 import dev.habib.client.config.HabibConfig;
+import dev.habib.client.beta.BetaAccess;
 import dev.habib.client.util.ConsumableOptimizer;
 import dev.habib.client.util.PearlOptimizer;
 import net.minecraft.client.particle.Particle;
@@ -20,6 +21,7 @@ public class ParticleManagerMixin {
             at = @At("HEAD"), cancellable = true, require = 0)
     private void habibclient$noExplosions(ParticleOptions effect, double x, double y, double z,
                                           double vx, double vy, double vz, CallbackInfoReturnable<Particle> cir) {
+        if (!BetaAccess.isAuthorized()) return;
         var type = effect.getType();
         boolean hide = (HabibConfig.noExplosionParticles
                 && (type == ParticleTypes.EXPLOSION || type == ParticleTypes.EXPLOSION_EMITTER))

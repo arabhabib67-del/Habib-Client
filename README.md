@@ -51,6 +51,12 @@ Press **Right Shift** in a world to open the Habib Client menu.
 
 Settings are saved to `config/habibclient.json`.
 
+## Beta access
+
+Beta builds can require an individual password for each Minecraft account. On first launch, the client shows the account UUID and a **Copy ID** button. The beta host adds that UUID and its unique password on the hosted admin page. Access is checked online and lasts for the current game session; revoking an account blocks its next login after the player restarts the game.
+
+Deploy and manage the hosted verifier by following [beta-access/README.md](beta-access/README.md). The verifier URL must be set in both Gradle property files before publishing a beta release. Keep the admin token on the server; it never belongs in the client jar.
+
 ## Auto-update
 The mod can update itself from your own GitHub repo, so you never have to send or copy a jar by hand again.
 

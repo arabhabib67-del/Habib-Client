@@ -1,5 +1,6 @@
 package dev.habib.client.mixin;
 
+import dev.habib.client.beta.BetaAccess;
 import dev.habib.client.util.TotemPops;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
@@ -17,7 +18,7 @@ public class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onEntityStatus", at = @At("HEAD"), require = 0)
     private void habibclient$status(EntityStatusS2CPacket packet, CallbackInfo ci) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.world == null) return;
+        if (!BetaAccess.isAuthorized() || mc.world == null) return;
         Entity e = packet.getEntity(mc.world);
         if (e != null) TotemPops.onEntityStatus(e, packet.getStatus());
     }
