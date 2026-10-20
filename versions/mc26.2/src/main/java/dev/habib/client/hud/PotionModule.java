@@ -2,7 +2,7 @@ package dev.habib.client.hud;
 
 import java.util.Collection;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 
@@ -17,7 +17,7 @@ public class PotionModule extends HudModule {
     }
 
     @Override
-    protected void render(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         if (mc.player == null) return;
         Collection<MobEffectInstance> effects = mc.player.getActiveEffects();
         if (effects.isEmpty()) {
@@ -25,7 +25,7 @@ public class PotionModule extends HudModule {
             height = 14;
             if (editing) {
                 box(ctx, 0, 0, width, height, 0x66000000);
-                ctx.drawString(mc.font, "Potion Status", 4, 3, color, true);
+                ctx.text(mc.font, "Potion Status", 4, 3, color, true);
             }
             return;
         }
@@ -46,7 +46,7 @@ public class PotionModule extends HudModule {
         height = lines.length * 11 + 3;
         box(ctx, 0, 0, width, height, 0x66000000);
         for (int n = 0; n < lines.length; n++) {
-            ctx.drawString(mc.font, lines[n], 4, 3 + n * 11, colors[n], true);
+            ctx.text(mc.font, lines[n], 4, 3 + n * 11, colors[n], true);
         }
     }
 

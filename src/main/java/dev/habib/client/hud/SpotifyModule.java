@@ -4,16 +4,13 @@ import dev.habib.client.util.NowPlaying;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 
-/**
- * Now-playing card: cover tile on the left, song and artist, "elapsed / total" on the right and a thin progress
- * bar along the bottom. The bar is red like the reference design; pick any other colour in the menu to recolour it.
- */
+/** Now-playing card with album art, progress, and the configurable Spotify playback shortcuts. */
 public class SpotifyModule extends HudModule {
-    private static final int W = 150;
-    private static final int H = 34;
+    private static final int W = 194;
+    private static final int H = 43;
     private static final int RED = 0xFFE5484D;
     private static final NowPlaying.Snapshot SAMPLE =
-            new NowPlaying.Snapshot("Artist", "Song title", false, 135_000L, 195_000L, 0L);
+            new NowPlaying.Snapshot("Artist", "Song title", false, 135_000L, 195_000L, 0L, "");
 
     public SpotifyModule(int x, int y) {
         super("spotify", "Spotify", x, y);
@@ -25,22 +22,23 @@ public class SpotifyModule extends HudModule {
     protected void render(DrawContext ctx, MinecraftClient mc, boolean editing) {
         NowPlaying.Snapshot s = NowPlaying.snapshot();
         if (s == null || s.title().isEmpty()) {
-            if (!editing) return; // nothing playing: draw nothing
-            s = SAMPLE;           // layout editor / menu preview
+            if (!editing) return;
+            s = SAMPLE;
         }
         width = W;
         height = H;
         box(ctx, 0, 0, W, H, 0x99000000);
 
-        // cover tile: a stand-in colour block (album art isn't available locally) with a note on it
         int hue = tileColor(s.title() + s.artist());
-        ctx.fill(4, 4, 26, 26, 0xFF000000 | scale(hue, 0.55f));
-        ctx.fill(5, 5, 25, 25, 0xFF000000 | hue);
-        String note = "\u266A";
-        ctx.drawText(mc.textRenderer, note, 15 - mc.textRenderer.getWidth(note) / 2, 11, 0xFFFFFFFF, false);
+        ctx.fill(4, 4, 32, 32, 0xFF000000 | scale(hue, 0.55f));
+        if (!SpotifyArtwork.draw(ctx, mc, 5, 5, 26)) {
+            ctx.fill(5, 5, 31, 31, 0xFF000000 | hue);
+            String note = "\u266A";
+            ctx.drawText(mc.textRenderer, note, 18 - mc.textRenderer.getWidth(note) / 2, 14, 0xFFFFFFFF, false);
+        }
 
-        int textX = 31;
-        int rightX = W - 4;
+        int textX = 37;
+        int rightX = W - 5;
         boolean timeline = s.hasTimeline();
         String time = timeline ? NowPlaying.clock(s.positionMs()) + " / " + NowPlaying.clock(s.durMs()) : "";
         int timeW = timeline ? mc.textRenderer.getWidth(time) : 0;
@@ -51,10 +49,14 @@ public class SpotifyModule extends HudModule {
         ctx.drawText(mc.textRenderer, mc.textRenderer.trimToWidth(s.artist(), Math.max(10, artistMax)), textX, 16, 0xFF9A9A9A, true);
         if (timeline) ctx.drawText(mc.textRenderer, time, rightX - timeW, 16, 0xFFB8B8B8, true);
 
+        shortcut(ctx, mc, "|< F7", 37);
+        shortcut(ctx, mc, ">|| F8", 84);
+        shortcut(ctx, mc, "F9 >|", 134);
+
         if (timeline) {
             int barL = 4;
             int barR = W - 4;
-            int barY = 28;
+            int barY = 39;
             int fillCol = !s.playing() ? 0xFF777777 : (color == 0xFFFFFFFF ? RED : color);
             ctx.fill(barL, barY, barR, barY + 2, 0xFF2B2B2B);
             int fillW = Math.round((barR - barL) * s.progress());
@@ -62,7 +64,12 @@ public class SpotifyModule extends HudModule {
         }
     }
 
-    /** Muted, stable colour per song so the stand-in cover differs from track to track (RGB, no alpha). */
+    private static void shortcut(DrawContext ctx, MinecraftClient mc, String text, int x) {
+        ctx.fill(x, 25, x + 43, 37, 0x8838383C);
+        ctx.drawText(mc.textRenderer, text, x + 4, 28, 0xFFCCCCD0, false);
+    }
+
+    /** Muted, stable colour per song for the fallback while artwork loads or is unavailable. */
     private static int tileColor(String seed) {
         float h = ((seed.hashCode() & 0x7FFFFFFF) % 360) / 60f;
         float sat = 0.45f;

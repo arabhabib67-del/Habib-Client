@@ -44,7 +44,7 @@ public final class PearlOptimizer {
 
         // every pearl in flight marks the area around it (covers its trail and where it lands)
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (e.getType() == EntityType.ENDER_PEARL) addZone(e.getX(), e.getY(), e.getZ());
+            if (net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().equals("ender_pearl")) addZone(e.getX(), e.getY(), e.getZ());
         }
 
         // a sudden jump of the player is a pearl teleport: cover both the departure and arrival points

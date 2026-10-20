@@ -3,7 +3,7 @@ package dev.habib.client.hud;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** A single line of text on an optional translucent background (FPS, ping, CPS, coords, ...). */
 public class TextModule extends HudModule {
@@ -23,7 +23,7 @@ public class TextModule extends HudModule {
     }
 
     @Override
-    protected void render(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         String s = text.apply(mc);
         if (s.isEmpty()) {
             if (!editing) return; // contextual modules (bow timer, arrows) draw nothing when not relevant
@@ -33,6 +33,6 @@ public class TextModule extends HudModule {
         height = 14;
         int c = dynamicColor != null ? dynamicColor.applyAsInt(mc) : color;
         box(ctx, 0, 0, width, height, 0x66000000);
-        ctx.drawString(mc.font, s, 4, 3, c, true);
+        ctx.text(mc.font, s, 4, 3, c, true);
     }
 }

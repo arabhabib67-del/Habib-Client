@@ -2,7 +2,7 @@ package dev.habib.client.hud;
 
 import dev.habib.client.config.HabibConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** Base class for every draggable HUD element. */
 public abstract class HudModule {
@@ -50,7 +50,7 @@ public abstract class HudModule {
 
     public void tick(Minecraft mc) {}
 
-    public final void draw(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    public final void draw(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         var m = ctx.pose();
         m.pushMatrix();
         m.translate((float) x, (float) y);
@@ -60,11 +60,11 @@ public abstract class HudModule {
     }
 
     /** Translucent box behind a module; skipped when the user turned boxes off. */
-    protected static void box(GuiGraphics ctx, int x1, int y1, int x2, int y2, int color) {
+    protected static void box(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int color) {
         if (HabibConfig.hudBackground) ctx.fill(x1, y1, x2, y2, color);
     }
 
-    protected abstract void render(GuiGraphics ctx, Minecraft mc, boolean editing);
+    protected abstract void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing);
 
     public int scaledWidth() {
         return Math.round(width * scale);

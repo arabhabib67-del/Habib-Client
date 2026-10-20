@@ -2,7 +2,7 @@ package dev.habib.client.hud;
 
 import java.util.function.ToIntFunction;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.util.function.ToDoubleFunction;
 
 /**
@@ -29,7 +29,7 @@ public class BowModule extends HudModule {
     }
 
     @Override
-    protected void render(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         boolean show = visible.test(mc);
         if (!show && !editing) return; // only appears while holding a bow or crossbow
 

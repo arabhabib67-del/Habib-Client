@@ -21,7 +21,7 @@ public final class CpsTracker {
         boolean l = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
         boolean r = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
         long now = System.currentTimeMillis();
-        if (mc.screen == null) {
+        if (mc.gui.screen() == null) {
             if (l && !leftDown) LEFT.addLast(now);
             if (r && !rightDown) RIGHT.addLast(now);
         }

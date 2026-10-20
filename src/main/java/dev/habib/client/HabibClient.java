@@ -8,6 +8,7 @@ import dev.habib.client.util.CrystalOptimizer;
 import dev.habib.client.util.Effects;
 import dev.habib.client.util.ConsumableOptimizer;
 import dev.habib.client.util.PearlOptimizer;
+import dev.habib.client.util.NowPlaying;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -23,6 +24,9 @@ public class HabibClient implements ClientModInitializer {
 
     public static KeyBinding openEditorKey;
     public static KeyBinding zoomKey;
+    public static KeyBinding spotifyPreviousKey;
+    public static KeyBinding spotifyPlayPauseKey;
+    public static KeyBinding spotifyNextKey;
 
     private static boolean zooming = false;
     private static int savedFov = 70;
@@ -34,6 +38,12 @@ public class HabibClient implements ClientModInitializer {
                 "key.habibclient.editor", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.habibclient.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, category));
+        spotifyPreviousKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.habibclient.spotify_previous", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, category));
+        spotifyPlayPauseKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.habibclient.spotify_play_pause", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F8, category));
+        spotifyNextKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.habibclient.spotify_next", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F9, category));
 
         HudManager.init();
         Updater.init();
@@ -47,6 +57,11 @@ public class HabibClient implements ClientModInitializer {
                 if (mc.currentScreen == null) {
                     mc.setScreen(new MenuScreen());
                 }
+            }
+            if (mc.currentScreen == null && mc.player != null) {
+                while (spotifyPreviousKey.wasPressed()) NowPlaying.previous();
+                while (spotifyPlayPauseKey.wasPressed()) NowPlaying.playPause();
+                while (spotifyNextKey.wasPressed()) NowPlaying.next();
             }
             tickZoom(mc);
         });

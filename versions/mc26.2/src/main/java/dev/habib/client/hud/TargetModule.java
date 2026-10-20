@@ -1,7 +1,7 @@
 package dev.habib.client.hud;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.LivingEntity;
 
 /** Name + health bar of the last living entity you looked at (stays for 3 seconds). */
@@ -26,7 +26,7 @@ public class TargetModule extends HudModule {
     }
 
     @Override
-    protected void render(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         String name;
         float hp;
         float max;
@@ -43,9 +43,9 @@ public class TargetModule extends HudModule {
         }
 
         box(ctx, 0, 0, width, height, 0x66000000);
-        ctx.drawString(mc.font, name, 4, 3, color, true);
+        ctx.text(mc.font, name, 4, 3, color, true);
         String hpText = String.format("%.1f/%.0f", hp, max);
-        ctx.drawString(mc.font, hpText, width - 4 - mc.font.width(hpText), 3, 0xFFFFFFFF, true);
+        ctx.text(mc.font, hpText, width - 4 - mc.font.width(hpText), 3, 0xFFFFFFFF, true);
 
         float frac = Math.max(0f, Math.min(1f, hp / max));
         int barW = width - 8;

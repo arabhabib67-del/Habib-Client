@@ -1,5 +1,8 @@
 {
   "key.habibclient.editor": "Open HUD Editor",
   "key.habibclient.zoom": "Zoom (hold)",
+  "key.habibclient.spotify_previous": "Spotify: Previous track",
+  "key.habibclient.spotify_play_pause": "Spotify: Play / pause",
+  "key.habibclient.spotify_next": "Spotify: Next track",
   "key.category.habibclient.main": "Habib Client"
 }

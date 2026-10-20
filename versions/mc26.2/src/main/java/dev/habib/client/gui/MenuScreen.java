@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletionException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -210,7 +210,7 @@ public class MenuScreen extends Screen {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
-    private static void rrect(GuiGraphics ctx, int x, int y, int w, int h, int r, int color) {
+    private static void rrect(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int color) {
         if (((color >>> 24) & 0xFF) == 0 || w <= 0 || h <= 0) return;
         int rad = Math.max(0, Math.min(Math.min(r, 1), Math.min(w, h) / 2)); // flat look: at most a 1px chamfer
         if (rad == 0) {
@@ -226,23 +226,23 @@ public class MenuScreen extends Screen {
         }
     }
 
-    private static void border(GuiGraphics ctx, int x, int y, int w, int h, int color) {
+    private static void border(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int color) {
         ctx.fill(x, y, x + w, y + 1, color);
         ctx.fill(x, y + h - 1, x + w, y + h, color);
         ctx.fill(x, y + 1, x + 1, y + h - 1, color);
         ctx.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
-    private void txt(GuiGraphics ctx, String s, int x, int y, int color) {
+    private void txt(GuiGraphicsExtractor ctx, String s, int x, int y, int color) {
         if (((color >>> 24) & 0xFF) < 12) return;
-        ctx.drawString(font, s, x, y, color, false);
+        ctx.text(font, s, x, y, color, false);
     }
 
-    private void txtCentered(GuiGraphics ctx, String s, int centerX, int y, int color) {
+    private void txtCentered(GuiGraphicsExtractor ctx, String s, int centerX, int y, int color) {
         txt(ctx, s, centerX - font.width(s) / 2, y, color);
     }
 
-    private void txtRight(GuiGraphics ctx, String s, int rightX, int y, int color) {
+    private void txtRight(GuiGraphicsExtractor ctx, String s, int rightX, int y, int color) {
         txt(ctx, s, rightX - font.width(s), y, color);
     }
 
@@ -365,7 +365,8 @@ public class MenuScreen extends Screen {
     // ------------------------------------------------------------------ render
 
     @Override
-    public void render(GuiGraphics ctx, int mx, int my, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
+        super.extractRenderState(ctx, mx, my, delta);
         long now = System.nanoTime();
         float dt = Math.min(0.05f, (now - lastNanos) / 1_000_000_000f);
         lastNanos = now;
@@ -401,7 +402,7 @@ public class MenuScreen extends Screen {
         }
     }
 
-    private void renderPanel(GuiGraphics ctx, int mx, int my, float dt, long now) {
+    private void renderPanel(GuiGraphicsExtractor ctx, int mx, int my, float dt, long now) {
         float a = open;
 
         // soft drop shadow, border, body
@@ -415,7 +416,7 @@ public class MenuScreen extends Screen {
 
         // masthead: bold caps, a short accent rule underneath, then the bomb
         Component habib = Component.literal("HABIB").withStyle(st -> st.withBold(true));
-        ctx.drawString(font, habib, px + 12, py + 7, alpha(TEXT, a), false);
+        ctx.text(font, habib, px + 12, py + 7, alpha(TEXT, a), false);
         int habibW = font.width(habib);
         txt(ctx, " CLIENT", px + 12 + habibW, py + 7, alpha(MUTED, a));
         drawBombIcon(ctx, px + 12 + habibW + font.width(" CLIENT") + 8, py + 8, a);
@@ -488,7 +489,7 @@ public class MenuScreen extends Screen {
     }
 
     /** Thin scroll indicator on the panel's right edge, only when the list actually scrolls. */
-    private void scrollbar(GuiGraphics ctx, float a) {
+    private void scrollbar(GuiGraphicsExtractor ctx, float a) {
         if (!scrolls()) return;
         float max = maxScroll();
         if (max <= 0f) return;
@@ -500,7 +501,7 @@ public class MenuScreen extends Screen {
         ctx.fill(x, thumbY, x + 2, thumbY + thumbH, alpha(sbDrag ? ACCENT : MUTED, a * 0.8f));
     }
 
-    private void renderModules(GuiGraphics ctx, int mx, int my, float dt, float ca) {
+    private void renderModules(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca) {
         List<HudModule> list = modulesFor(tab.category);
         int slide = Math.round((1f - tabFade) * 8f);
         for (int j = 0; j < list.size(); j++) {
@@ -539,7 +540,7 @@ public class MenuScreen extends Screen {
     }
 
     /** 11x11 pixel-art bomb drawn next to the title (no texture needed). */
-    private void drawBombIcon(GuiGraphics ctx, int x, int y, float a) {
+    private void drawBombIcon(GuiGraphicsExtractor ctx, int x, int y, float a) {
         for (int yy = 0; yy < 11; yy++) {
             for (int xx = 0; xx < 11; xx++) {
                 double dx = xx - 4.5;
@@ -572,22 +573,22 @@ public class MenuScreen extends Screen {
     }
 
     /** Thin status stripe on the left edge of a row: lit in the given colour when on. */
-    private static void stripe(GuiGraphics ctx, int x, int y, int h, float t, int onColor, float a) {
+    private static void stripe(GuiGraphicsExtractor ctx, int x, int y, int h, float t, int onColor, float a) {
         ctx.fill(x, y + 5, x + 2, y + h - 5, alpha(mix(0xFF2C2C32, onColor, t), a));
     }
 
     /** Section heading: accent tick plus caps title. */
-    private void sectionTitle(GuiGraphics ctx, String s, int x, int y, float a) {
-        ctx.drawString(font, Component.literal(s).withStyle(st -> st.withBold(true)), x, y, alpha(TEXT, a), false);
+    private void sectionTitle(GuiGraphicsExtractor ctx, String s, int x, int y, float a) {
+        ctx.text(font, Component.literal(s).withStyle(st -> st.withBold(true)), x, y, alpha(TEXT, a), false);
     }
 
-    private void smallButton(GuiGraphics ctx, int mx, int my, int x, int y, String label, float a) {
+    private void smallButton(GuiGraphicsExtractor ctx, int mx, int my, int x, int y, String label, float a) {
         boolean over = inside(mx, my, x, y, 14, 14);
         border(ctx, x, y, 14, 14, alpha(over ? ACCENT : 0xFF303036, a));
         txtCentered(ctx, label, x + 7, y + 3, alpha(over ? TEXT : MUTED, a));
     }
 
-    private void drawSwitch(GuiGraphics ctx, int x, int y, float t, float a) {
+    private void drawSwitch(GuiGraphicsExtractor ctx, int x, int y, float t, float a) {
         // outlined track with a square knob; fills with the accent when on
         ctx.fill(x, y, x + 24, y + 12, alpha(mix(0x00000000, ACCENT, t), a));       // solid accent when on
         border(ctx, x, y, 24, 12, alpha(mix(0xFF44444B, ACCENT, t), a));
@@ -595,7 +596,7 @@ public class MenuScreen extends Screen {
         ctx.fill(knobX, y + 3, knobX + 6, y + 9, alpha(mix(MUTED, 0xFFFFFFFF, t), a));
     }
 
-    private void renderAnimations(GuiGraphics ctx, int mx, int my, float dt, long now, float ca, int oy) {
+    private void renderAnimations(GuiGraphicsExtractor ctx, int mx, int my, float dt, long now, float ca, int oy) {
         int style = HabibConfig.swingStyle;
         float k = HabibConfig.swingIntensity;
 
@@ -717,7 +718,7 @@ public class MenuScreen extends Screen {
     private float consumableToggle;
     private float totemParticleToggle;
 
-    private void optimizeRow(GuiGraphics ctx, int mx, int my, int y, String title, String sub, float t, float ca) {
+    private void optimizeRow(GuiGraphicsExtractor ctx, int mx, int my, int y, String title, String sub, float t, float ca) {
         boolean over = inside(mx, my, cx, y, cw, 30);
         rrect(ctx, cx, y, cw, 30, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
         stripe(ctx, cx, y, 30, t, ACCENT, ca);
@@ -726,7 +727,7 @@ public class MenuScreen extends Screen {
         drawSwitch(ctx, cx + cw - 34, y + 9, t, ca);
     }
 
-    private void renderOptimize(GuiGraphics ctx, int mx, int my, float dt, float ca, int oy) {
+    private void renderOptimize(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
         sectionTitle(ctx, "Optimizers", cx, oy, ca);
         txt(ctx, "Visual and performance only. All off until you turn them on.", cx, oy + 12, alpha(MUTED, ca));
 
@@ -749,7 +750,7 @@ public class MenuScreen extends Screen {
     private float popMessageToggle;
     private float lowArmorToggle;
 
-    private void renderEffects(GuiGraphics ctx, int mx, int my, float dt, float ca, int oy) {
+    private void renderEffects(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
         sectionTitle(ctx, "Effects", cx, oy, ca);
         txt(ctx, "Screen alerts and chat notices. All off until you turn them on.", cx, oy + 12, alpha(MUTED, ca));
 
@@ -798,12 +799,12 @@ public class MenuScreen extends Screen {
         return cw - PROFILE_BTN_NEW_W - PROFILE_BTN_PASTE_W - 12;
     }
 
-    private void profileButton(GuiGraphics ctx, boolean over, int x, int y, int w, int h, String label, int base, float ca) {
+    private void profileButton(GuiGraphicsExtractor ctx, boolean over, int x, int y, int w, int h, String label, int base, float ca) {
         rrect(ctx, x, y, w, h, 5, alpha(over ? mix(base, 0xFFFFFFFF, 0.15f) : base, ca));
         txtCentered(ctx, label, x + w / 2, y + (h - 8) / 2, alpha(TEXT, ca));
     }
 
-    private void renderProfiles(GuiGraphics ctx, int mx, int my, float ca, int oy) {
+    private void renderProfiles(GuiGraphicsExtractor ctx, int mx, int my, float ca, int oy) {
         sectionTitle(ctx, "Profiles", cx, oy, ca);
         String note = profileNote.isEmpty() ? "Save your setup, switch between setups, or share one as a code." : profileNote;
         txt(ctx, font.plainSubstrByWidth(note, cw), cx, oy + 12, alpha(profileNote.isEmpty() ? MUTED : ACCENT, ca));
@@ -816,7 +817,7 @@ public class MenuScreen extends Screen {
         profileField.setY(fy + 6);
         profileField.setWidth(fw - 16);
         profileField.setHeight(8);
-        profileField.render(ctx, mx, my, 0f);
+        profileField.extractWidgetRenderState(ctx, mx, my, 0f);
         int bx = cx + fw + 6;
         profileButton(ctx, inside(mx, my, bx, fy, PROFILE_BTN_NEW_W, 20), bx, fy, PROFILE_BTN_NEW_W, 20, "Save new", ACCENT_DIM, ca);
         int px2 = bx + PROFILE_BTN_NEW_W + 6;
@@ -990,7 +991,7 @@ public class MenuScreen extends Screen {
         return (cw - 12) / 3;
     }
 
-    private void renderPresets(GuiGraphics ctx, int mx, int my, float dt, float ca, int oy) {
+    private void renderPresets(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
         sectionTitle(ctx, "Graphics presets", cx, oy, ca);
         String current = "Custom";
         for (Preset p : PRESETS) if (presetActive(p)) current = p.name();
@@ -1138,7 +1139,7 @@ public class MenuScreen extends Screen {
         return Long.toString(n);
     }
 
-    private void renderPacks(GuiGraphics ctx, int mx, int my, float dt, float ca, int oy) {
+    private void renderPacks(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
         // view switch: Modrinth | Installed | Enabled
         int third = cw / 3;
         rrect(ctx, cx, oy, third * 3, 20, 6, alpha(ROW, ca));
@@ -1158,7 +1159,7 @@ public class MenuScreen extends Screen {
         packField.setY(oy + 24 + 5);
         packField.setWidth(cw - 16);
         packField.setHeight(8);
-        packField.render(ctx, mx, my, 0f);
+        packField.extractWidgetRenderState(ctx, mx, my, 0f);
         if (!packsInstalledView && searchAt > 0 && System.currentTimeMillis() >= searchAt) runSearch();
 
         int top = listTop();
@@ -1169,7 +1170,7 @@ public class MenuScreen extends Screen {
         ctx.disableScissor();
     }
 
-    private void renderHits(GuiGraphics ctx, int mx, int my, float ca, int top, int h) {
+    private void renderHits(GuiGraphicsExtractor ctx, int mx, int my, float ca, int top, int h) {
         if (hits.isEmpty()) {
             txt(ctx, font.plainSubstrByWidth(packsStatus, cw), cx + 2, top + 6, alpha(MUTED, ca));
             return;
@@ -1217,7 +1218,7 @@ public class MenuScreen extends Screen {
         }
     }
 
-    private void renderInstalled(GuiGraphics ctx, int mx, int my, float dt, float ca, int top, int h) {
+    private void renderInstalled(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int top, int h) {
         List<Pack> list = installedPacks();
         if (list.isEmpty()) {
             String q = packField.getValue().trim();
@@ -1283,14 +1284,14 @@ public class MenuScreen extends Screen {
     private static final String[] ARMOR_LAYOUTS = {"Vertical", "Horizontal"};
     private static final String[] ARMOR_DURABILITY = {"Uses left", "Percent", "Vanilla bar", "Hidden"};
 
-    private void armorOptionRow(GuiGraphics ctx, int mx, int my, int y, String label, String value, float ca) {
+    private void armorOptionRow(GuiGraphicsExtractor ctx, int mx, int my, int y, String label, String value, float ca) {
         boolean over = inside(mx, my, cx, y, cw, 22);
         rrect(ctx, cx, y, cw, 22, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(over)), ca));
         txt(ctx, label, cx + 10, y + 7, alpha(TEXT, ca));
         txtRight(ctx, "< " + value + " >", cx + cw - 10, y + 7, alpha(over ? ACCENT : MUTED, ca));
     }
 
-    private void renderLayoutTab(GuiGraphics ctx, int mx, int my, float dt, float ca, int oy) {
+    private void renderLayoutTab(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
         sectionTitle(ctx, "HUD layout", cx, oy, ca);
         txt(ctx, "Drag modules anywhere on screen, resize them with the", cx, oy + 14, alpha(MUTED, ca));
         txt(ctx, "scroll wheel and recolour them with right-click.", cx, oy + 26, alpha(MUTED, ca));
@@ -1326,7 +1327,7 @@ public class MenuScreen extends Screen {
         drawSwitch(ctx, cx + cw - 34, oy + 185, heldToggle, ca);
     }
 
-    private void renderLayoutMode(GuiGraphics ctx, int mx, int my, float dt) {
+    private void renderLayoutMode(GuiGraphicsExtractor ctx, int mx, int my, float dt) {
         for (HudModule m : HudManager.MODULES) {
             if (!m.enabled) continue;
             int c = m == dragging ? 0xFF55FF55 : m.contains(mx, my) ? 0xFFFFFFFF : 0x66FFFFFF;

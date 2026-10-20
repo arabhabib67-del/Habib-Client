@@ -5,7 +5,8 @@ import dev.habib.client.gui.MenuScreen;
 import dev.habib.client.util.CpsTracker;
 import dev.habib.client.util.TotemPops;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -49,10 +50,13 @@ public final class HudManager {
         categorize();
         HabibConfig.load();
 
-        HudRenderCallback.EVENT.register((ctx, tickCounter) -> {
+        HudElementRegistry.attachElementBefore(
+                VanillaHudElements.CHAT,
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("habibclient", "hud"),
+                (ctx, tickCounter) -> {
             Minecraft mc = Minecraft.getInstance();
             CpsTracker.poll(mc);
-            if (mc.player == null || mc.options.hideGui || mc.screen instanceof MenuScreen) return;
+            if (mc.player == null || mc.gui.hud.isHidden() || mc.gui.screen() instanceof MenuScreen) return;
             for (HudModule m : MODULES) {
                 if (m.enabled) m.draw(ctx, mc, false);
             }

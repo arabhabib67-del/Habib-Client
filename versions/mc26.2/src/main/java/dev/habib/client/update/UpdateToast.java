@@ -3,7 +3,7 @@ package dev.habib.client.update;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.toasts.Toast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.network.chat.Component;
@@ -28,7 +28,7 @@ final class UpdateToast implements Toast {
     }
 
     static void show(Minecraft client, String title, String description) {
-        client.getToastManager().addToast(new UpdateToast(title, description));
+        client.gui.toastManager().addToast(new UpdateToast(title, description));
     }
 
     @Override
@@ -47,7 +47,7 @@ final class UpdateToast implements Toast {
     }
 
     @Override
-    public void render(GuiGraphics context, Font textRenderer, long time) {
+    public void extractRenderState(GuiGraphicsExtractor context, Font textRenderer, long time) {
         roundedRect(context, 0, 0, WIDTH, HEIGHT, 8, 0xFF74747A);
         roundedRect(context, 1, 1, WIDTH - 2, HEIGHT - 2, 7, 0xE62B2B2F);
 
@@ -55,11 +55,11 @@ final class UpdateToast implements Toast {
 
         String clippedTitle = textRenderer.plainSubstrByWidth(title.getString(), WIDTH - TEXT_X - 9);
         Component visibleTitle = Component.literal(clippedTitle).withStyle(style -> style.withBold(true));
-        context.drawString(textRenderer, visibleTitle, TEXT_X, 7, 0xFFF6F6F7, false);
+        context.text(textRenderer, visibleTitle, TEXT_X, 7, 0xFFF6F6F7, false);
 
         List<FormattedCharSequence> lines = textRenderer.split(description, WIDTH - TEXT_X - 10);
         for (int i = 0; i < Math.min(lines.size(), 2); i++) {
-            context.drawString(textRenderer, lines.get(i), TEXT_X, 20 + i * 10, 0xFFC7C7CB, false);
+            context.text(textRenderer, lines.get(i), TEXT_X, 20 + i * 10, 0xFFC7C7CB, false);
         }
     }
 
@@ -73,7 +73,7 @@ final class UpdateToast implements Toast {
         return HEIGHT;
     }
 
-    private static void drawUpdateIcon(GuiGraphics context, int centerX, int centerY) {
+    private static void drawUpdateIcon(GuiGraphicsExtractor context, int centerX, int centerY) {
         drawCircle(context, centerX, centerY, 7, 0xFF35C86A);
         drawCircle(context, centerX, centerY, 5, 0xE62B2B2F);
         int green = 0xFF35C86A;
@@ -83,7 +83,7 @@ final class UpdateToast implements Toast {
         context.fill(centerX - 2, centerY + 3, centerX + 3, centerY + 4, green);
     }
 
-    private static void drawCircle(GuiGraphics context, int centerX, int centerY, int radius, int color) {
+    private static void drawCircle(GuiGraphicsExtractor context, int centerX, int centerY, int radius, int color) {
         for (int y = -radius; y <= radius; y++) {
             int halfWidth = (int) Math.floor(Math.sqrt(radius * radius - y * y));
             context.fill(centerX - halfWidth, centerY + y,
@@ -91,7 +91,7 @@ final class UpdateToast implements Toast {
         }
     }
 
-    private static void roundedRect(GuiGraphics context, int x, int y, int width, int height, int radius, int color) {
+    private static void roundedRect(GuiGraphicsExtractor context, int x, int y, int width, int height, int radius, int color) {
         context.fill(x + radius, y, x + width - radius, y + height, color);
         context.fill(x, y + radius, x + width, y + height - radius, color);
         for (int row = 0; row < radius; row++) {

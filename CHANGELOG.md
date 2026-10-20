@@ -1,7 +1,11 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
-None of these builds have been compiled or run in-game yet; build with `./gradlew build` before relying on them.
+## 1.14.1 - Spotify artwork and playback controls
+- Added the Spotify cover image to the now-playing HUD when the desktop player exposes artwork. It loads in the background and keeps a colored fallback tile if artwork is unavailable.
+- Added configurable F7 previous, F8 play/pause, and F9 next shortcuts. Commands run outside Minecraft's game thread.
+- Retains the last good track during brief media-session errors and retries artwork downloads after a temporary failure.
+- Updated the separate 26.2 build for its changed HUD, screen, toast and item-rendering APIs.
 
 ## 1.14.0 - Minecraft 26.2 support
 - Added a separate Minecraft 26.2 build while keeping the existing Minecraft 1.21.11 build.
@@ -29,9 +33,9 @@ None of these builds have been compiled or run in-game yet; build with `./gradle
 - Needs a public GitHub repo; see README > Auto-update for the one-time setup.
 
 ## 1.10.0 - Spotify card
-- The Spotify module is now a now-playing card: cover tile, song title, artist, `elapsed / total` time and a progress bar along the bottom (red by default, recolourable with the module colour, grey when paused).
+- The Spotify module is now a now-playing card: song title, artist, `elapsed / total` time and a progress bar along the bottom (red by default, recolourable with the module colour, grey when paused).
 - Now reads position and length: Windows system media controls (title-only fallback if unavailable), macOS AppleScript, Linux playerctl. Progress is worked out locally between checks so the bar moves smoothly.
-- Limits: the cover tile is a stand-in colour block (real album art isn't read), and the Windows title fallback has no time or bar.
+- Playback controls and platform album art were added in 1.14.1. The Windows title fallback still has no timeline.
 
 ## 1.9.1 - Pearl optimizer reliability
 - Pearl optimizer keeps its hide-zones for 1 second and a 5 block radius so landing / teleport particles are still hidden on high-ping connections, where they arrive after the pearl is gone. Zone list is also de-duplicated to keep the check cheap.

@@ -22,7 +22,7 @@ A PvP-focused client-side Fabric mod for **Minecraft 1.21.11** and **26.2**. Eve
 | Arrows | How many arrows you have (only shows while you hold a bow or crossbow) |
 | Hunger | Food level and saturation |
 | Toggle Sprint | Off by default. Keeps you sprinting while W is held (Movement tab) |
-| Spotify | A now-playing card for the Spotify desktop app (Info tab, off by default): cover tile, song, artist, `elapsed / total` time and a progress bar along the bottom (red by default; pick another colour in the menu to recolour the bar; grey while paused). Reads local info only, with no account, login or network: Windows uses the system media controls (falls back to the Spotify window title, which has no time or bar), macOS uses AppleScript (the first time, macOS asks whether your Minecraft launcher may control Spotify: click OK, or later allow it under System Settings > Privacy & Security > Automation), Linux uses `playerctl`. The cover is a coloured stand-in tile, not the real album art. Hidden when Spotify isn't running |
+| Spotify | The now-playing card (Info tab, off by default) shows song, artist, timeline and Spotify album art when the local player provides it. Artwork downloads in the background; no Spotify login or developer token is needed. Playback works in-game with **F7** (previous), **F8** (play/pause) and **F9** (next); rebind them under Options > Controls > Habib Client. Windows uses the system media session, macOS uses AppleScript (allow your Minecraft launcher under System Settings > Privacy & Security > Automation), and Linux uses `playerctl`. If art or playback metadata is unavailable, the card falls back to a colored music tile and keeps the last good track briefly through transient player errors. Hidden when Spotify is not running |
 | Coordinates / Direction / Speed | Position, facing, blocks per second |
 | Movement Status | Sneaking / Sprinting / Walking |
 | Clock / Memory | Local time, JVM memory use |
@@ -46,6 +46,7 @@ Press **Right Shift** in a world to open the Habib Client menu.
 - **Profiles**: save your whole setup under a name (HUD modules, positions, sizes, colours, optimizers, effects, animation, zoom and armor settings). **Save new** stores your current setup, **Load** switches to a profile, **Update** overwrites it with your current settings, **Share** copies a code like `HC1-...` to your clipboard, and **x** deletes it (click twice). **Paste code** adds a profile from a code you copied; press Load to use it. Profiles never include the auto-update settings.
 - **Menu navigation**: Up/Down arrows or the number keys (1-9, 0) switch tabs, PageUp/PageDown/Home/End move through long lists, and the scroll bar can be dragged. Each tab remembers its scroll position, and clicking outside the panel closes the menu.
 - **C** (hold): zoom
+- **F7 / F8 / F9**: Spotify previous / play or pause / next
 - Keys can be rebound under Options > Controls > Habib Client
 
 Settings are saved to `config/habibclient.json`.
@@ -56,11 +57,11 @@ The mod can update itself from your own GitHub repo, so you never have to send o
 **One-time setup**
 1. Create a **public** repo on GitHub (for example `arabhabib67-del/Habib-Client`) and upload the contents of this folder to it (the folder that holds `build.gradle` becomes the repo root), on the `main` branch.
 2. In `gradle.properties` set `update_repo=arabhabib67-del/Habib-Client` (already set), then commit that change.
-3. Open the repo's **Actions** tab. The build runs by itself and creates a **Release** named `v<mod_version>` with separate jars for Minecraft 1.21.11 and 26.2 attached.
+3. Keep `mod_version` in both `gradle.properties` files in sync. Open the repo's **Actions** tab. The build runs by itself and creates a **Release** named `v<mod_version>` with separate jars for Minecraft 1.21.11 and 26.2 attached.
 4. Download that jar once, put it in your `mods` folder, and start the game.
 
 **Every update after that**
-Raise `mod_version` in `gradle.properties`, commit and push. The workflow publishes a new release. Next time you launch the game the mod checks for it and shows a top-right toast when a newer version is available. With auto-update on, it downloads the update, verifies it, then shows a restart toast when the update is ready to install after you close the game. A new version only counts if its number is higher than the one you have.
+Raise `mod_version` in both Gradle property files, commit and push. The workflow publishes a new release. Next time you launch the game the mod checks for it and shows a top-right toast when a newer version is available. With auto-update on, it downloads the update, verifies it, then shows a restart toast when the update is ready to install after you close the game. A new version only counts if its number is higher than the one you have.
 
 **In the game**
 The menu header shows your version and update status (for example `v1.11.0 - Up to date`). Click it to check right now, or to install when an update is waiting. Update notices appear as Minecraft-style toasts in the top-right corner.

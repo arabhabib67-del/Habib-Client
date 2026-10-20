@@ -1,9 +1,10 @@
 package dev.habib.client.util;
 
 import dev.habib.client.config.HabibConfig;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
@@ -26,7 +27,10 @@ public final class Effects {
     private Effects() {}
 
     public static void init() {
-        HudRenderCallback.EVENT.register((ctx, tickCounter) -> render(ctx));
+        HudElementRegistry.attachElementBefore(
+                VanillaHudElements.CHAT,
+                net.minecraft.resources.Identifier.fromNamespaceAndPath("habibclient", "effects"),
+                (ctx, tickCounter) -> render(ctx));
     }
 
     /** Called right after a totem pop was counted for this player. */
@@ -44,14 +48,14 @@ public final class Effects {
         }
         if (HabibConfig.popMessages) {
             String who = self ? "You" : p.getName().getString();
-            mc.gui.getChat().addMessage(
+            mc.player.sendSystemMessage(
                     Component.literal("[Habib] " + who + " popped a totem (" + TotemPops.pops(p) + ")"));
         }
     }
 
-    private static void render(GuiGraphics ctx) {
+    private static void render(GuiGraphicsExtractor ctx) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui || mc.screen != null) return;
+        if (mc.player == null || mc.gui.hud.isHidden() || mc.gui.screen() != null) return;
         long now = System.currentTimeMillis();
         int w = ctx.guiWidth();
         int h = ctx.guiHeight();
@@ -79,7 +83,7 @@ public final class Effects {
     }
 
     /** Soft coloured edge: stacked translucent frames, thickest layer outermost. */
-    private static void vignette(GuiGraphics ctx, int w, int h, int rgb, float strength) {
+    private static void vignette(GuiGraphicsExtractor ctx, int w, int h, int rgb, float strength) {
         int layers = 6;
         int a = Math.round(255f * Math.max(0f, Math.min(1f, strength)) / layers);
         if (a <= 0) return;

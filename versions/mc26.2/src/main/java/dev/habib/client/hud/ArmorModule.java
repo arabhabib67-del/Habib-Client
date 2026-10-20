@@ -3,7 +3,7 @@ package dev.habib.client.hud;
 import dev.habib.client.config.HabibConfig;
 import java.util.Arrays;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 
@@ -37,7 +37,7 @@ public class ArmorModule extends HudModule {
     }
 
     @Override
-    protected void render(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         if (mc.player == null) return;
 
         int slots = HabibConfig.armorShowHeld ? SLOTS.length : SLOTS.length - 1;
@@ -55,7 +55,7 @@ public class ArmorModule extends HudModule {
             height = ROW;
             if (editing) {
                 box(ctx, 0, 0, width, height - 1, 0x66000000);
-                ctx.drawCenteredString(mc.font, "Armor", width / 2, 5, color);
+                ctx.centeredText(mc.font, "Armor", width / 2, 5, color);
             }
             return;
         }
@@ -75,25 +75,25 @@ public class ArmorModule extends HudModule {
             ItemStack stack = mc.player.getItemBySlot(SLOTS[i]);
             int x = horizontal ? k * cell + (cell - 16) / 2 : 0;
             int y = horizontal ? 0 : k * ROW;
-            ctx.renderItem(stack, x, y);
+            ctx.item(stack, x, y);
 
             if (stack.isDamageableItem()) {
                 if (mode == 2) {
-                    ctx.renderItemDecorations(mc.font, stack, x, y); // the item's own vanilla durability bar
+                    ctx.itemDecorations(mc.font, stack, x, y); // the item's own vanilla durability bar
                     continue;
                 }
                 if (!text) continue;
                 refresh(i, stack, mode);
                 if (horizontal) {
                     String s = cachedText[i];
-                    ctx.drawString(mc.font, s, k * cell + (cell - mc.font.width(s)) / 2, ROW,
+                    ctx.text(mc.font, s, k * cell + (cell - mc.font.width(s)) / 2, ROW,
                             cachedColor[i], true);
                 } else {
-                    ctx.drawString(mc.font, cachedText[i], 20, y + 5, cachedColor[i], true);
+                    ctx.text(mc.font, cachedText[i], 20, y + 5, cachedColor[i], true);
                 }
             } else {
                 // stackable items (totems, crystals, ...) still need their count
-                ctx.renderItemDecorations(mc.font, stack, x, y);
+                ctx.itemDecorations(mc.font, stack, x, y);
             }
         }
     }

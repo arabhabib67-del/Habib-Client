@@ -45,7 +45,7 @@ public final class ConsumableOptimizer {
         ZONES.removeIf(z -> z[3] < tick);
 
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (e.getType() == EntityType.SPLASH_POTION || e.getType() == EntityType.LINGERING_POTION) {
+            if (net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath().equals("potion")) {
                 addZone(e.getX(), e.getY(), e.getZ(), POTION_TICKS, POTION_RADIUS_SQ, 1);
             } else if (e instanceof LivingEntity le && le.isUsingItem() && isEatOrDrink(le.getUseItem())) {
                 addZone(le.getX(), le.getEyeY(), le.getZ(), EAT_TICKS, EAT_RADIUS_SQ, 0);

@@ -1,7 +1,7 @@
 package dev.habib.client.hud;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -25,7 +25,7 @@ public class ItemCountModule extends HudModule {
     }
 
     @Override
-    protected void render(GuiGraphics ctx, Minecraft mc, boolean editing) {
+    protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
         if (mc.player == null) return;
         Inventory inv = mc.player.getInventory();
         box(ctx, 0, 0, width, height, 0x66000000);
@@ -40,9 +40,9 @@ public class ItemCountModule extends HudModule {
                 }
             }
             int x = i * 24 + 3;
-            ctx.renderItem(new ItemStack(GROUPS[i][0]), x, 0);
+            ctx.item(new ItemStack(GROUPS[i][0]), x, 0);
             String c = String.valueOf(count);
-            ctx.drawString(mc.font, c, x + 16 - mc.font.width(c) + 2, 11,
+            ctx.text(mc.font, c, x + 16 - mc.font.width(c) + 2, 11,
                     count == 0 ? 0xFFFF5555 : color, true);
         }
     }

@@ -18,7 +18,7 @@ public class ToggleSprintModule extends TextModule {
     public void tick(Minecraft mc) {
         active = false;
         LocalPlayer p = mc.player;
-        if (!enabled || p == null || mc.screen != null) return;
+        if (!enabled || p == null || mc.gui.screen() != null) return;
         if (mc.options.keyUp.isDown()
                 && !p.isShiftKeyDown()
                 && !p.isUsingItem()
