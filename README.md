@@ -60,10 +60,10 @@ The mod can update itself from your own GitHub repo, so you never have to send o
 4. Download that jar once, put it in your `mods` folder, and start the game.
 
 **Every update after that**
-Raise `mod_version` in `gradle.properties`, commit and push. The workflow publishes a new release. Next time you launch the game the mod checks for it and shows an in-game chat notification when a newer version is available. With auto-update on, it downloads the update, verifies it, and installs it when you close the game. A new version only counts if its number is higher than the one you have.
+Raise `mod_version` in `gradle.properties`, commit and push. The workflow publishes a new release. Next time you launch the game the mod checks for it and shows a top-right toast when a newer version is available. With auto-update on, it downloads the update, verifies it, then shows a restart toast when the update is ready to install after you close the game. A new version only counts if its number is higher than the one you have.
 
 **In the game**
-The menu header shows your version and the update status (for example `v1.11.0 - Up to date`). Click it to check right now, or to install when an update is waiting. A chat line tells you when an update has been downloaded.
+The menu header shows your version and update status (for example `v1.11.0 - Up to date`). Click it to check right now, or to install when an update is waiting. Update notices appear as Minecraft-style toasts in the top-right corner.
 
 **Settings** (`config/habibclient.json`): `autoUpdate` (true/false) checks on launch; true also downloads automatically, while false only notifies you and waits for you to click the version in the menu header. `updateRepo` overrides the repo built into the jar. With no repo set the updater stays off.
 

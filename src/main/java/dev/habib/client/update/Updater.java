@@ -10,7 +10,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.metadata.CustomValue;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -411,17 +410,18 @@ public final class Updater {
     }
 
     private static void tick(MinecraftClient mc) {
-        if (mc.player == null) return;
         String availableNotice = availabilityNotice;
         if (!availableNotice.isEmpty()) {
             availabilityNotice = "";
-            mc.inGameHud.getChatHud().addMessage(Text.literal(availableNotice));
+            UpdateToast.show(mc, "Habib Client update available", availableNotice);
         }
         if (!noticeSent && state == State.READY) {
             noticeSent = true;
-            mc.inGameHud.getChatHud().addMessage(Text.literal(installedNow
-                    ? "[Habib] Updated to " + latest + ". Restart the game to use it."
-                    : "[Habib] Update " + latest + " downloaded. It installs when you close the game."));
+            UpdateToast.show(mc,
+                    installedNow ? "Habib Client updated" : "Restart to finish updating Habib Client",
+                    installedNow
+                            ? "Version " + latest + " is installed. Restart the game to use it."
+                            : "Habib Client " + latest + " is ready and loads the next time you launch the game.");
         }
     }
 }
