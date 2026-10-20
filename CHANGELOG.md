@@ -1,6 +1,12 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.14.5 - Modern glass menu
+- Reworked the client menu with a spacious translucent glass panel, soft highlights, and rounded navigation and setting cards.
+- Grouped HUD module controls, added an enabled count and clear ON/OFF labels, and redesigned animated toggles and scale controls.
+- Applied the same menu design to Minecraft 1.21.11 and 26.2.
+- Updated the Gradle wrapper to 9.7.0 so the 26.2 Fabric Loom build can resolve its required Gradle plugin API.
+
 ## 1.14.4 - More reliable Spotify connection
 - Uses Spotify's Apple-event property IDs directly so metadata polling does not rely on scripting-dictionary resolution.
 - macOS now reads song details separately from optional cover art, so an artwork lookup failure cannot hide the track.

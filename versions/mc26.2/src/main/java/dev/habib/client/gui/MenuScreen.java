@@ -60,21 +60,21 @@ public class MenuScreen extends Screen {
 
     private static final int ACCENT = 0xFFFF6A2B;
     private static final int ACCENT_DIM = 0xFFC9501C;
-    private static final int BG = 0xF2121214;
-    private static final int SIDE_BG = 0xFF0C0C0E;
-    private static final int ROW = 0xFF18181B;
-    private static final int ROW_HOVER = 0xFF202024;
-    private static final int TEXT = 0xFFECECEE;
-    private static final int MUTED = 0xFF85858C;
-    private static final int OFF = 0xFF38383E;
-    private static final int HAIR = 0x16FFFFFF;
+    private static final int BG = 0xD91A1E27;
+    private static final int SIDE_BG = 0x8D11151D;
+    private static final int ROW = 0x4DFFFFFF;
+    private static final int ROW_HOVER = 0x75FFFFFF;
+    private static final int TEXT = 0xFFF2F4F8;
+    private static final int MUTED = 0xFF9EA8B7;
+    private static final int OFF = 0xFF596270;
+    private static final int HAIR = 0x25FFFFFF;
     private static final int LAYOUT_SNAP_DISTANCE = 8;
 
-    private static final int HEADER_H = 30;
-    private static final int SIDE_W = 100;
-    private static final int ROW_H = 26;
-    private static final int ROW_STRIDE = 28;
-    private static final int TAB_H = 17;
+    private static final int HEADER_H = 38;
+    private static final int SIDE_W = 116;
+    private static final int ROW_H = 32;
+    private static final int ROW_STRIDE = 37;
+    private static final int TAB_H = 19;
 
     private Tab tab = Tab.INFO;
     private boolean layoutMode;
@@ -213,11 +213,12 @@ public class MenuScreen extends Screen {
 
     private static void rrect(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int color) {
         if (((color >>> 24) & 0xFF) == 0 || w <= 0 || h <= 0) return;
-        int rad = Math.max(0, Math.min(Math.min(r, 1), Math.min(w, h) / 2)); // flat look: at most a 1px chamfer
+        int rad = Math.max(0, Math.min(r, Math.min(w, h) / 2));
         if (rad == 0) {
             ctx.fill(x, y, x + w, y + h, color);
             return;
         }
+        ctx.fill(x + rad, y, x + w - rad, y + h, color);
         ctx.fill(x, y + rad, x + w, y + h - rad, color);
         for (int i = 0; i < rad; i++) {
             double dy = rad - i - 0.5;
@@ -234,6 +235,11 @@ public class MenuScreen extends Screen {
         ctx.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
+    private static void glassBorder(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int edge, int fill) {
+        rrect(ctx, x, y, w, h, r, edge);
+        if (w > 2 && h > 2) rrect(ctx, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);
+    }
+
     private void txt(GuiGraphicsExtractor ctx, String s, int x, int y, int color) {
         if (((color >>> 24) & 0xFF) < 12) return;
         ctx.text(font, s, x, y, color, false);
@@ -248,23 +254,23 @@ public class MenuScreen extends Screen {
     }
 
     private void geometry() {
-        pw = Math.min(430, width - 16);
-        ph = Math.min(268, height - 16);
+        pw = Math.min(520, width - 24);
+        ph = Math.min(360, height - 24);
         px = (width - pw) / 2;
         py = (height - ph) / 2 + Math.round((1f - open) * 10f);
-        cx = px + SIDE_W + 10;
-        cy = py + HEADER_H + 8;
-        cw = pw - SIDE_W - 20;
-        ch = ph - HEADER_H - 16;
+        cx = px + SIDE_W + 14;
+        cy = py + HEADER_H + 12;
+        cw = pw - SIDE_W - 28;
+        ch = ph - HEADER_H - 24;
     }
 
     private int tabY(int i) {
         int base = py + HEADER_H + 8;
-        return i < 4 ? base + 12 + 18 * i : base + 95 + TAB_H * (i - 4);
+        return i < 4 ? base + 10 + 22 * i : base + 112 + 22 * (i - 4);
     }
 
     private int rowY(int j) {
-        return cy + j * ROW_STRIDE - Math.round(scroll);
+        return cy + 27 + j * ROW_STRIDE - Math.round(scroll);
     }
 
     private List<HudModule> modulesFor(Category c) {
@@ -289,7 +295,7 @@ public class MenuScreen extends Screen {
             return Math.max(0f, rows * stride - listH());
         }
         if (tab.category == null) return 0f;
-        return Math.max(0f, modulesFor(tab.category).size() * ROW_STRIDE - ch);
+        return Math.max(0f, modulesFor(tab.category).size() * ROW_STRIDE + 27 - ch);
     }
 
     /** Smoothly animated 0..1 hover value for rows that have no state of their own (keyed by draw order). */
@@ -406,57 +412,64 @@ public class MenuScreen extends Screen {
     private void renderPanel(GuiGraphicsExtractor ctx, int mx, int my, float dt, long now) {
         float a = open;
 
-        // soft drop shadow, border, body
-        ctx.fill(px - 3, py + 2, px + pw + 3, py + ph + 6, alpha(0x28000000, a));
-        ctx.fill(px - 1, py + 1, px + pw + 1, py + ph + 3, alpha(0x30000000, a));
-        rrect(ctx, px - 1, py - 1, pw + 2, ph + 2, 1, alpha(0xFF2A2A30, a));
-        rrect(ctx, px, py, pw, ph, 5, alpha(BG, a));
-        ctx.fill(px, py + HEADER_H, px + SIDE_W, py + ph, alpha(SIDE_BG, a));
-        ctx.fill(px + SIDE_W - 1, py + HEADER_H, px + SIDE_W, py + ph, alpha(HAIR, a));
-        ctx.fill(px, py + HEADER_H - 1, px + pw, py + HEADER_H, alpha(HAIR, a));
+        // Layered translucent surfaces create a soft glass feel without obscuring the game.
+        rrect(ctx, px - 3, py + 3, pw + 6, ph + 6, 18, alpha(0x50000000, a));
+        rrect(ctx, px - 1, py - 1, pw + 2, ph + 2, 18, alpha(0xA0FFFFFF, a * 0.24f));
+        rrect(ctx, px, py, pw, ph, 17, alpha(BG, a));
+        rrect(ctx, px + 2, py + 1, pw - 4, HEADER_H + 4, 15, alpha(0x20FFFFFF, a));
+        ctx.fill(px + 16, py + 1, px + pw - 16, py + 2, alpha(0x70FFFFFF, a * 0.42f));
+        rrect(ctx, px + 2, py + HEADER_H, SIDE_W - 3, ph - HEADER_H - 2, 13, alpha(SIDE_BG, a));
+        ctx.fill(px + SIDE_W + 4, py + HEADER_H + 8, px + SIDE_W + 5, py + ph - 8, alpha(HAIR, a));
+        ctx.fill(px + 12, py + HEADER_H - 1, px + pw - 12, py + HEADER_H, alpha(HAIR, a));
 
-        // masthead: bold caps, a short accent rule underneath, then the bomb
+        // Compact brand mark, title and update chip.
+        rrect(ctx, px + 12, py + 10, 18, 18, 6, alpha(ACCENT, a));
+        txtCentered(ctx, "H", px + 21, py + 15, alpha(0xFFFFFFFF, a));
         Component habib = Component.literal("HABIB").withStyle(st -> st.withBold(true));
-        ctx.text(font, habib, px + 12, py + 7, alpha(TEXT, a), false);
+        ctx.text(font, habib, px + 38, py + 13, alpha(TEXT, a), false);
         int habibW = font.width(habib);
-        txt(ctx, " CLIENT", px + 12 + habibW, py + 7, alpha(MUTED, a));
-        drawBombIcon(ctx, px + 12 + habibW + font.width(" CLIENT") + 8, py + 8, a);
+        txt(ctx, " CLIENT", px + 38 + habibW, py + 13, alpha(MUTED, a));
 
         // version + update status (click to check / install)
-        boolean pillOver = inside(mx, my, pillX() - 4, py + 5, pillW() + 8, 14);
+        boolean pillOver = inside(mx, my, pillX() - 6, py + 8, pillW() + 12, 22);
         int pillCol = Updater.highlighted() ? ACCENT : pillOver ? TEXT : MUTED;
-        txt(ctx, pillText(), pillX(), py + 11, alpha(pillCol, a * (Updater.highlighted() || pillOver ? 1f : 0.75f)));
+        glassBorder(ctx, pillX() - 6, py + 9, pillW() + 12, 20, 10,
+                alpha(pillOver || Updater.highlighted() ? ACCENT : 0x48FFFFFF, a * 0.65f),
+                alpha(0x20FFFFFF, a));
+        txt(ctx, pillText(), pillX(), py + 15, alpha(pillCol, a * (Updater.highlighted() || pillOver ? 1f : 0.82f)));
 
         // breadcrumb: where you are
-        txtRight(ctx, tab.label.toUpperCase(Locale.ROOT), px + pw - 32, py + 11, alpha(MUTED, a * 0.7f));
+        txtRight(ctx, tab.label, px + pw - 42, py + 15, alpha(MUTED, a * 0.8f));
 
         // close button
-        boolean closeHover = inside(mx, my, px + pw - 24, py + 7, 16, 16);
-        txtCentered(ctx, "x", px + pw - 16, py + 11, alpha(closeHover ? ACCENT : MUTED, a));
+        boolean closeHover = inside(mx, my, px + pw - 32, py + 8, 22, 22);
+        if (closeHover) rrect(ctx, px + pw - 32, py + 8, 22, 22, 11, alpha(0x30FFFFFF, a));
+        txtCentered(ctx, "x", px + pw - 21, py + 15, alpha(closeHover ? ACCENT : MUTED, a));
 
         // sidebar
         int base = py + HEADER_H + 8;
-        txt(ctx, "MODULES", px + 14, base, alpha(MUTED, a * 0.6f));
-        ctx.fill(px + 14 + font.width("MODULES") + 6, base + 4, px + SIDE_W - 10, base + 5, alpha(HAIR, a));
-        txt(ctx, "CLIENT", px + 14, base + 85, alpha(MUTED, a * 0.6f));
-        ctx.fill(px + 14 + font.width("CLIENT") + 6, base + 89, px + SIDE_W - 10, base + 90, alpha(HAIR, a));
+        txt(ctx, "HUD MODULES", px + 14, base, alpha(MUTED, a * 0.72f));
+        ctx.fill(px + 14 + font.width("HUD MODULES") + 6, base + 4, px + SIDE_W - 12, base + 5, alpha(HAIR, a));
+        txt(ctx, "TOOLS", px + 14, base + 102, alpha(MUTED, a * 0.72f));
+        ctx.fill(px + 14 + font.width("TOOLS") + 6, base + 106, px + SIDE_W - 12, base + 107, alpha(HAIR, a));
 
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
         highlightY = approach(highlightY, targetY, dt, 16f);
         int hy = Math.round(highlightY);
-        ctx.fill(px + 6, hy, px + SIDE_W - 1, hy + TAB_H, alpha(ACCENT, a * 0.09f)); // active tab plate
-        ctx.fill(px + 6, hy + 2, px + 8, hy + TAB_H - 2, alpha(ACCENT, a));              // marker follows the active tab
+        rrect(ctx, px + 8, hy, SIDE_W - 16, TAB_H, 9, alpha(ACCENT, a * 0.14f));
+        rrect(ctx, px + 10, hy + 5, 3, TAB_H - 10, 2, alpha(ACCENT, a));
 
         for (int i = 0; i < TABS.length; i++) {
-            boolean over = inside(mx, my, px + 6, tabY(i), SIDE_W - 12, TAB_H);
+            boolean over = inside(mx, my, px + 8, tabY(i), SIDE_W - 16, TAB_H);
             tabHover[i] = approach(tabHover[i], over ? 1f : 0f, dt, 18f);
             float strength = Math.max(TABS[i] == tab ? 1f : 0f, tabHover[i] * 0.8f);
-            int nudge = Math.round(tabHover[i] * 2f);
-            if (TABS[i] != tab) ctx.fill(px + 6, tabY(i), px + SIDE_W - 1, tabY(i) + TAB_H, alpha(0xFFFFFFFF, a * 0.05f * tabHover[i]));
-            txt(ctx, TABS[i].label, px + 18 + nudge, tabY(i) + 4, alpha(mix(MUTED, TEXT, strength), a));
+            if (TABS[i] != tab && tabHover[i] > 0.02f) {
+                rrect(ctx, px + 8, tabY(i), SIDE_W - 16, TAB_H, 9, alpha(0x28FFFFFF, a * tabHover[i]));
+            }
+            txt(ctx, TABS[i].label, px + 20, tabY(i) + 5, alpha(mix(MUTED, TEXT, strength), a));
             if (TABS[i].category == null && i < 10) {
-                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 12, tabY(i) + 4, alpha(MUTED, a * 0.3f));
+                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 14, tabY(i) + 5, alpha(MUTED, a * 0.46f));
             }
             if (TABS[i].category != null) {
                 int on = 0;
@@ -466,7 +479,7 @@ public class MenuScreen extends Screen {
                     total++;
                     if (m.enabled) on++;
                 }
-                txtRight(ctx, on + "/" + total, px + SIDE_W - 12, tabY(i) + 4,
+                txtRight(ctx, on + "/" + total, px + SIDE_W - 14, tabY(i) + 5,
                         alpha(MUTED, a * (0.45f + 0.4f * strength)));
             }
         }
@@ -505,6 +518,12 @@ public class MenuScreen extends Screen {
     private void renderModules(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca) {
         List<HudModule> list = modulesFor(tab.category);
         int slide = Math.round((1f - tabFade) * 8f);
+        int enabled = 0;
+        for (HudModule module : list) if (module.enabled) enabled++;
+        sectionTitle(ctx, tab.label + " widgets", cx, cy + 1, ca);
+        txtRight(ctx, enabled + " / " + list.size() + " ON", cx + cw, cy + 2, alpha(MUTED, ca * 0.82f));
+        txt(ctx, "Toggle, resize and recolour each HUD item.", cx, cy + 14, alpha(MUTED, ca * 0.78f));
+
         for (int j = 0; j < list.size(); j++) {
             HudModule m = list.get(j);
             int idx = HudManager.MODULES.indexOf(m);
@@ -514,50 +533,31 @@ public class MenuScreen extends Screen {
             boolean over = inside(mx, my, cx, ry, cw, ROW_H) && inside(mx, my, cx, cy, cw, ch);
             hover[idx] = approach(hover[idx], over ? 1f : 0f, dt, 18f);
 
-            // flat list: only the hovered row gets a plate, rows are separated by hairlines
-            rrect(ctx, cx, ry, cw, ROW_H, 5, alpha(ROW_HOVER, ca * hover[idx]));
-            ctx.fill(cx + 10, ry + ROW_H, cx + cw - 10, ry + ROW_H + 1, alpha(HAIR, ca));
-            stripe(ctx, cx, ry, ROW_H, toggle[idx], m.color | 0xFF000000, ca);
-            txt(ctx, m.label, cx + 10, ry + 9, alpha(mix(MUTED, TEXT, toggle[idx]), ca));
+            int rowFill = mix(ROW, ROW_HOVER, 0.18f + hover[idx] * 0.58f);
+            glassBorder(ctx, cx, ry, cw, ROW_H, 9, alpha(0x30FFFFFF, ca * (0.55f + hover[idx] * 0.45f)), alpha(rowFill, ca));
+            rrect(ctx, cx + 9, ry + 8, 3, ROW_H - 16, 2,
+                    alpha(mix(OFF, m.color | 0xFF000000, toggle[idx]), ca));
+            txt(ctx, m.label, cx + 19, ry + 10, alpha(mix(MUTED, TEXT, toggle[idx]), ca));
 
-            // size - [1.0x] +   (shown on hover so idle rows stay calm)
+            // Scale controls appear on hover; color and on/off stay visible and aligned.
             float hv = hover[idx] * ca;
-            if (hv > 0.02f) {
-                smallButton(ctx, mx, my, cx + cw - 128, ry + 6, "-", hv);
-                txtCentered(ctx, String.format(Locale.ROOT, "%.1fx", m.scale), cx + cw - 95, ry + 9, alpha(MUTED, hv));
-                smallButton(ctx, mx, my, cx + cw - 76, ry + 6, "+", hv);
+            if (hv > 0.02f && cw > 350) {
+                txt(ctx, "SCALE", cx + cw - 220, ry + 12, alpha(MUTED, hv * 0.8f));
+                smallButton(ctx, mx, my, cx + cw - 174, ry + 8, "-", hv);
+                txtCentered(ctx, String.format(Locale.ROOT, "%.1fx", m.scale), cx + cw - 148, ry + 11, alpha(MUTED, hv));
+                smallButton(ctx, mx, my, cx + cw - 122, ry + 8, "+", hv);
             }
 
-            // colour swatch
-            rrect(ctx, cx + cw - 54, ry + 7, 12, 12, 3, alpha(m.color | 0xFF000000, ca * (0.55f + 0.45f * toggle[idx])));
-
-            // on/off switch
-            drawSwitch(ctx, cx + cw - 34, ry + 7, toggle[idx], ca);
+            rrect(ctx, cx + cw - 94, ry + 9, 14, 14, 6,
+                    alpha(m.color | 0xFF000000, ca * (0.58f + 0.42f * toggle[idx])));
+            txtRight(ctx, toggle[idx] > 0.5f ? "ON" : "OFF", cx + cw - 47, ry + 12,
+                    alpha(toggle[idx] > 0.5f ? TEXT : MUTED, ca * 0.9f));
+            drawSwitch(ctx, cx + cw - 40, ry + 7, toggle[idx], ca);
         }
 
         if (list.isEmpty()) {
-            txt(ctx, "Nothing here yet.", cx, cy + 4, alpha(MUTED, ca));
+            txt(ctx, "Nothing here yet.", cx, cy + 38, alpha(MUTED, ca));
         }
-    }
-
-    /** 11x11 pixel-art bomb drawn next to the title (no texture needed). */
-    private void drawBombIcon(GuiGraphicsExtractor ctx, int x, int y, float a) {
-        for (int yy = 0; yy < 11; yy++) {
-            for (int xx = 0; xx < 11; xx++) {
-                double dx = xx - 4.5;
-                double dy = yy - 6.5;
-                if (dx * dx + dy * dy <= 20.25) {
-                    ctx.fill(x + xx, y + yy, x + xx + 1, y + yy + 1, alpha(0xFF4A4A4A, a));
-                }
-            }
-        }
-        ctx.fill(x + 2, y + 5, x + 4, y + 6, alpha(0xFFB8B8B8, a)); // shine
-        ctx.fill(x + 2, y + 6, x + 3, y + 7, alpha(0xFFB8B8B8, a));
-        ctx.fill(x + 5, y + 1, x + 8, y + 3, alpha(0xFF8A8A8A, a)); // cap
-        ctx.fill(x + 8, y + 1, x + 9, y + 2, alpha(0xFFC8AA78, a)); // fuse
-        ctx.fill(x + 9, y, x + 10, y + 1, alpha(0xFFC8AA78, a));
-        ctx.fill(x + 10, y - 1, x + 11, y, alpha(0xFFFFC43C, a));   // spark
-        ctx.fill(x + 9, y - 1, x + 10, y, alpha(0xFFFF9B2E, a));
     }
 
     private String pillText() {
@@ -570,12 +570,12 @@ public class MenuScreen extends Screen {
 
     private int pillX() {
         Component habib = Component.literal("HABIB").withStyle(st -> st.withBold(true));
-        return px + 12 + font.width(habib) + font.width(" CLIENT") + 8 + 11 + 12;
+        return px + 38 + font.width(habib) + font.width(" CLIENT") + 10;
     }
 
     /** Thin status stripe on the left edge of a row: lit in the given colour when on. */
     private static void stripe(GuiGraphicsExtractor ctx, int x, int y, int h, float t, int onColor, float a) {
-        ctx.fill(x, y + 5, x + 2, y + h - 5, alpha(mix(0xFF2C2C32, onColor, t), a));
+        rrect(ctx, x, y + 5, 3, h - 10, 2, alpha(mix(0xFF2C2C32, onColor, t), a));
     }
 
     /** Section heading: accent tick plus caps title. */
@@ -584,17 +584,18 @@ public class MenuScreen extends Screen {
     }
 
     private void smallButton(GuiGraphicsExtractor ctx, int mx, int my, int x, int y, String label, float a) {
-        boolean over = inside(mx, my, x, y, 14, 14);
-        border(ctx, x, y, 14, 14, alpha(over ? ACCENT : 0xFF303036, a));
-        txtCentered(ctx, label, x + 7, y + 3, alpha(over ? TEXT : MUTED, a));
+        boolean over = inside(mx, my, x, y, 16, 16);
+        glassBorder(ctx, x, y, 16, 16, 8, alpha(over ? ACCENT : 0x55FFFFFF, a), alpha(over ? 0x35FFFFFF : 0x16FFFFFF, a));
+        txtCentered(ctx, label, x + 8, y + 4, alpha(over ? TEXT : MUTED, a));
     }
 
     private void drawSwitch(GuiGraphicsExtractor ctx, int x, int y, float t, float a) {
-        // outlined track with a square knob; fills with the accent when on
-        ctx.fill(x, y, x + 24, y + 12, alpha(mix(0x00000000, ACCENT, t), a));       // solid accent when on
-        border(ctx, x, y, 24, 12, alpha(mix(0xFF44444B, ACCENT, t), a));
-        int knobX = x + 3 + Math.round(t * 12f);
-        ctx.fill(knobX, y + 3, knobX + 6, y + 9, alpha(mix(MUTED, 0xFFFFFFFF, t), a));
+        rrect(ctx, x, y, 34, 18, 9, alpha(mix(0xFF48515E, ACCENT, t), a));
+        rrect(ctx, x + 1, y + 1, 32, 16, 8, alpha(mix(0xFF424B58, ACCENT, t), a));
+        rrect(ctx, x + 2, y + 2, 30, 6, 4, alpha(0x20FFFFFF, a));
+        int knobX = x + 2 + Math.round(t * 16f);
+        rrect(ctx, knobX, y + 2, 14, 14, 7, alpha(0xD0FFFFFF, a));
+        rrect(ctx, knobX + 1, y + 3, 12, 5, 4, alpha(0x55FFFFFF, a));
     }
 
     private void renderAnimations(GuiGraphicsExtractor ctx, int mx, int my, float dt, long now, float ca, int oy) {
@@ -625,7 +626,7 @@ public class MenuScreen extends Screen {
         rrect(ctx, cx, oy + 56, cw, 22, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(overHit)), ca));
         stripe(ctx, cx, oy + 56, 22, onHitToggle, ACCENT, ca);
         txt(ctx, "Full animation only on hit", cx + 10, oy + 63, alpha(mix(MUTED, TEXT, onHitToggle), ca));
-        drawSwitch(ctx, cx + cw - 34, oy + 61, onHitToggle, ca);
+        drawSwitch(ctx, cx + cw - 40, oy + 58, onHitToggle, ca);
 
         // intensity slider
         float live = style > 0 ? 1f : 0.4f;
@@ -725,7 +726,7 @@ public class MenuScreen extends Screen {
         stripe(ctx, cx, y, 30, t, ACCENT, ca);
         txt(ctx, title, cx + 10, y + 5, alpha(mix(MUTED, TEXT, t), ca));
         txt(ctx, font.plainSubstrByWidth(sub, cw - 60), cx + 10, y + 16, alpha(MUTED, ca));
-        drawSwitch(ctx, cx + cw - 34, y + 9, t, ca);
+        drawSwitch(ctx, cx + cw - 40, y + 6, t, ca);
     }
 
     private void renderOptimize(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
@@ -1242,7 +1243,7 @@ public class MenuScreen extends Screen {
             stripe(ctx, cx, ry, INSTALLED_ROW_H, t, ACCENT, ca);
             String name = p.getTitle().getString();
             txt(ctx, font.plainSubstrByWidth(name, cw - 60), cx + 10, ry + 9, alpha(mix(MUTED, TEXT, t), ca));
-            drawSwitch(ctx, cx + cw - 34, ry + 7, t, ca);
+            drawSwitch(ctx, cx + cw - 40, ry + 4, t, ca);
         }
     }
 
@@ -1313,7 +1314,7 @@ public class MenuScreen extends Screen {
         stripe(ctx, cx, oy + 84, 26, bgToggle, ACCENT, ca);
         txt(ctx, "Box behind HUD", cx + 10, oy + 93, alpha(mix(MUTED, TEXT, bgToggle), ca));
         txtRight(ctx, HabibConfig.hudBackground ? "On" : "Text only", cx + cw - 44, oy + 93, alpha(MUTED, ca));
-        drawSwitch(ctx, cx + cw - 34, oy + 91, bgToggle, ca);
+        drawSwitch(ctx, cx + cw - 40, oy + 88, bgToggle, ca);
 
         // armor HUD options
         txt(ctx, "ARMOR HUD", cx, oy + 120, alpha(MUTED, ca * 0.8f));
@@ -1325,7 +1326,7 @@ public class MenuScreen extends Screen {
         rrect(ctx, cx, oy + 180, cw, 22, 5, alpha(mix(ROW, ROW_HOVER, rowHoverAnim(overH)), ca));
         stripe(ctx, cx, oy + 180, 22, heldToggle, ACCENT, ca);
         txt(ctx, "Show held item", cx + 10, oy + 187, alpha(mix(MUTED, TEXT, heldToggle), ca));
-        drawSwitch(ctx, cx + cw - 34, oy + 185, heldToggle, ca);
+        drawSwitch(ctx, cx + cw - 40, oy + 182, heldToggle, ca);
     }
 
     private void renderLayoutMode(GuiGraphicsExtractor ctx, int mx, int my, float dt) {
@@ -1395,11 +1396,11 @@ public class MenuScreen extends Screen {
             dragScrollbar(my);
             return true;
         }
-        if (inside(mx, my, px + pw - 24, py + 7, 16, 16)) {
+        if (inside(mx, my, px + pw - 32, py + 8, 22, 22)) {
             onClose();
             return true;
         }
-        if (inside(mx, my, pillX() - 4, py + 5, pillW() + 8, 14)) {
+        if (inside(mx, my, pillX() - 6, py + 8, pillW() + 12, 22)) {
             Updater.onClick();
             return true;
         }
@@ -1430,11 +1431,11 @@ public class MenuScreen extends Screen {
             int ry = rowY(j);
             if (!inside(mx, my, cx, ry, cw, ROW_H)) continue;
             HudModule m = list.get(j);
-            if (inside(mx, my, cx + cw - 54, ry + 6, 14, 14)) {
+            if (inside(mx, my, cx + cw - 94, ry + 9, 14, 14)) {
                 m.cycleColor();
-            } else if (inside(mx, my, cx + cw - 128, ry + 6, 14, 14)) {
+            } else if (cw > 350 && inside(mx, my, cx + cw - 174, ry + 8, 16, 16)) {
                 m.scale = Math.max(0.5f, Math.round((m.scale - 0.1f) * 10f) / 10f);
-            } else if (inside(mx, my, cx + cw - 76, ry + 6, 14, 14)) {
+            } else if (cw > 350 && inside(mx, my, cx + cw - 122, ry + 8, 16, 16)) {
                 m.scale = Math.min(3f, Math.round((m.scale + 0.1f) * 10f) / 10f);
             } else {
                 m.enabled = !m.enabled; // switch or anywhere else on the row
