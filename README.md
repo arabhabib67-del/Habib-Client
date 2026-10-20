@@ -1,6 +1,6 @@
 # Habib Client
 
-A PvP-focused client-side Fabric mod for **Minecraft 1.21.11**. Every HUD element is a draggable module.
+A PvP-focused client-side Fabric mod for **Minecraft 1.21.11** and **26.2**. Every HUD element is a draggable module. Install the jar matching your Minecraft version; each version uses its own compatible build.
 
 ## Modules
 | Module | What it shows |
@@ -56,7 +56,7 @@ The mod can update itself from your own GitHub repo, so you never have to send o
 **One-time setup**
 1. Create a **public** repo on GitHub (for example `arabhabib67-del/Habib-Client`) and upload the contents of this folder to it (the folder that holds `build.gradle` becomes the repo root), on the `main` branch.
 2. In `gradle.properties` set `update_repo=arabhabib67-del/Habib-Client` (already set), then commit that change.
-3. Open the repo's **Actions** tab. The build runs by itself and creates a **Release** named `v<mod_version>` with the jar attached.
+3. Open the repo's **Actions** tab. The build runs by itself and creates a **Release** named `v<mod_version>` with separate jars for Minecraft 1.21.11 and 26.2 attached.
 4. Download that jar once, put it in your `mods` folder, and start the game.
 
 **Every update after that**
@@ -71,14 +71,31 @@ The menu header shows your version and update status (for example `v1.11.0 - Up 
 
 If the swap ever fails the new jar stays in `config/habibclient-update/` with a `last-update.log` explaining why; copy it into `mods/` and delete the old jar yourself.
 
+## Minecraft versions
+
+Each Minecraft version has a separate jar because 26.2 uses a different Java version and Minecraft naming system from 1.21.11.
+
+| Minecraft | Java | Build folder | Release jar suffix |
+|---|---:|---|---|
+| 1.21.11 | 21 | repository root | `mc1.21.11.jar` |
+| 26.2 | 25 | `versions/mc26.2` | `mc26.2.jar` |
+
+Install only the jar whose suffix matches your Minecraft version. The in-game updater also selects and verifies the matching jar automatically.
+
 ## Build
-Requires JDK 21 (if you also have a newer JDK installed, run `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` first on a Mac) and internet access (to fetch Minecraft + Fabric).
+
+Both builds need internet access to fetch Minecraft and Fabric dependencies. The 1.21.11 build requires JDK 21; the 26.2 build requires JDK 25.
 
 ```
-./gradlew build
+./gradlew remapJar
 ```
 
-The jar is written to `build/libs/habib-client-1.13.0.jar`. Put it in your `mods` folder together with
-[Fabric Loader](https://fabricmc.net/use/) 0.19.5+ and [Fabric API](https://modrinth.com/mod/fabric-api) for 1.21.11.
+For Minecraft 26.2, run from `versions/mc26.2`:
 
-To run it straight from the project: `./gradlew runClient`.
+```
+./gradlew jar
+```
+
+Each jar is written to that build's `build/libs/` folder. Put the matching jar in your `mods` folder with Fabric Loader 0.19.5+ and the matching Fabric API release.
+
+To run the 1.21.11 build straight from the project: `./gradlew runClient`.

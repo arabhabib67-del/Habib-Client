@@ -3,6 +3,11 @@
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
 None of these builds have been compiled or run in-game yet; build with `./gradlew build` before relying on them.
 
+## 1.14.0 - Minecraft 26.2 support
+- Added a separate Minecraft 26.2 build while keeping the existing Minecraft 1.21.11 build.
+- Release automation builds and attaches one jar per supported Minecraft version; the in-game updater chooses and verifies the jar matching the installed version.
+- The 26.2 port uses Mojang's unobfuscated names and Java 25. The 1.21.11 build stays on Yarn mappings and Java 21.
+
 ## 1.13.0 - Profiles and share codes
 - New **Profiles** tab (last in the sidebar). Type a name and press **Save new** to store your current setup: every HUD module's on/off, position, size and colour, plus the optimizers, effects, animation, zoom and armor settings.
 - **Load** switches to a profile, **Update** overwrites it with your current settings, **Share** copies a share code to the clipboard, and **x** deletes (click twice to confirm). Up to 50 profiles, saved in `config/habibclient-profiles.json`.

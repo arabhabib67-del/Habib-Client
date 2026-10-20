@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "dev.habib.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "HeldItemRendererMixin",
+    "MinecraftClientMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "ParticleManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

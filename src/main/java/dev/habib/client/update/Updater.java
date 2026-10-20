@@ -56,6 +56,7 @@ public final class Updater {
 
     private static String current = "0";
     private static String bakedRepo = "";
+    private static String bakedMinecraftVersion = "";
     private static Path currentJar;
     private static Path stageDir;
     private static volatile Path stagedJar;
@@ -109,6 +110,7 @@ public final class Updater {
         FabricLoader.getInstance().getModContainer(MOD_ID).ifPresent(c -> {
             current = c.getMetadata().getVersion().getFriendlyString();
             bakedRepo = readBakedRepo(c);
+            bakedMinecraftVersion = readBakedMinecraftVersion(c);
             currentJar = locateJar(c);
         });
         ClientTickEvents.END_CLIENT_TICK.register(Updater::tick);
@@ -143,6 +145,17 @@ public final class Updater {
             if (v == null) return "";
             CustomValue r = v.getAsObject().get("updateRepo");
             return r == null ? "" : r.getAsString().trim();
+        } catch (RuntimeException e) {
+            return "";
+        }
+    }
+
+    private static String readBakedMinecraftVersion(ModContainer c) {
+        try {
+            CustomValue v = c.getMetadata().getCustomValue(MOD_ID);
+            if (v == null) return "";
+            CustomValue version = v.getAsObject().get("minecraftVersion");
+            return version == null ? "" : version.getAsString().trim();
         } catch (RuntimeException e) {
             return "";
         }
@@ -186,8 +199,8 @@ public final class Updater {
     public static void check(boolean autoDownload) {
         if (busy()) return;
         String repo = repo();
-        if (repo.isEmpty() || currentJar == null) {
-            set(State.DISABLED, currentJar == null ? "dev build" : "no repo set");
+        if (repo.isEmpty() || currentJar == null || bakedMinecraftVersion.isEmpty()) {
+            set(State.DISABLED, currentJar == null ? "dev build" : bakedMinecraftVersion.isEmpty() ? "no target version" : "no repo set");
             return;
         }
         set(State.CHECKING, "");
@@ -201,8 +214,8 @@ public final class Updater {
                     set(State.UP_TO_DATE, "");
                     return;
                 }
-                JsonObject asset = pickAsset(rel.getAsJsonArray("assets"));
-                if (asset == null) throw new IOException("release has no mod jar");
+                JsonObject asset = pickAsset(rel.getAsJsonArray("assets"), bakedMinecraftVersion);
+                if (asset == null) throw new IOException("release has no jar for Minecraft " + bakedMinecraftVersion);
                 String url = str(asset, "browser_download_url");
                 String digest = str(asset, "digest").toLowerCase(Locale.ROOT);
                 if (!url.startsWith("https://github.com/" + repo + "/releases/download/")) throw new IOException("unexpected download address");
@@ -223,13 +236,14 @@ public final class Updater {
         t.start();
     }
 
-    private static JsonObject pickAsset(JsonArray assets) {
+    private static JsonObject pickAsset(JsonArray assets, String minecraftVersion) {
         if (assets == null) return null;
+        String expectedSuffix = "-mc" + minecraftVersion + ".jar";
         for (JsonElement e : assets) {
             if (!e.isJsonObject()) continue;
             JsonObject a = e.getAsJsonObject();
             String n = str(a, "name").toLowerCase(Locale.ROOT);
-            if (n.endsWith(".jar") && !n.contains("sources") && !n.contains("dev")) return a;
+            if (n.endsWith(expectedSuffix) && !n.contains("sources") && !n.contains("dev")) return a;
         }
         return null;
     }
@@ -279,8 +293,9 @@ public final class Updater {
         if (!Versions.safe(ver)) throw new IOException("odd version");
         set(State.DOWNLOADING, "");
         Files.createDirectories(stageDir);
-        Path part = stageDir.resolve("habib-client-" + ver + ".jar.part");
-        Path done = stageDir.resolve("habib-client-" + ver + ".jar");
+        String stagedName = "habib-client-" + ver + "-mc" + bakedMinecraftVersion + ".jar";
+        Path part = stageDir.resolve(stagedName + ".part");
+        Path done = stageDir.resolve(stagedName);
 
         HttpRequest req = HttpRequest.newBuilder(URI.create(assetUrl))
                 .timeout(Duration.ofSeconds(90))
@@ -302,7 +317,7 @@ public final class Updater {
                 }
             }
             if (!hex(sha.digest()).equals(assetSha)) throw new IOException("checksum did not match");
-            verifyJar(part, ver);
+            verifyJar(part, ver, bakedMinecraftVersion);
             Files.move(part, done, StandardCopyOption.REPLACE_EXISTING);
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IOException("no SHA-256 available");
@@ -322,7 +337,7 @@ public final class Updater {
     }
 
     /** The file must really be this mod at the announced version. */
-    private static void verifyJar(Path file, String ver) throws IOException {
+    private static void verifyJar(Path file, String ver, String minecraftVersion) throws IOException {
         try (ZipFile z = new ZipFile(file.toFile())) {
             ZipEntry e = z.getEntry("fabric.mod.json");
             if (e == null) throw new IOException("not a Fabric mod");
@@ -332,6 +347,11 @@ public final class Updater {
             }
             if (!MOD_ID.equals(str(o, "id"))) throw new IOException("wrong mod");
             if (Versions.compare(str(o, "version"), ver) != 0) throw new IOException("version mismatch");
+            JsonObject custom = o.has("custom") ? o.getAsJsonObject("custom") : null;
+            JsonObject modCustom = custom != null && custom.has(MOD_ID) ? custom.getAsJsonObject(MOD_ID) : null;
+            if (modCustom == null || !minecraftVersion.equals(str(modCustom, "minecraftVersion"))) {
+                throw new IOException("Minecraft version mismatch");
+            }
         }
     }
 
@@ -342,11 +362,12 @@ public final class Updater {
         if (stageDir == null || !Files.isDirectory(stageDir)) return;
         Path best = null;
         String bestVer = "";
+        String suffix = "-mc" + bakedMinecraftVersion + ".jar";
         try (Stream<Path> s = Files.list(stageDir)) {
             for (Path p : (Iterable<Path>) s::iterator) {
                 String n = p.getFileName().toString();
-                if (!n.startsWith("habib-client-") || !n.endsWith(".jar")) continue;
-                String v = n.substring("habib-client-".length(), n.length() - ".jar".length());
+                if (!n.startsWith("habib-client-") || !n.endsWith(suffix)) continue;
+                String v = n.substring("habib-client-".length(), n.length() - suffix.length());
                 if (!Versions.safe(v)) continue;
                 if (best == null || Versions.compare(v, bestVer) > 0) {
                     best = p;
@@ -366,7 +387,7 @@ public final class Updater {
             return;
         }
         try {
-            verifyJar(best, bestVer);
+            verifyJar(best, bestVer, bakedMinecraftVersion);
         } catch (IOException e) {
             return;
         }

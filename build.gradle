@@ -10,6 +10,10 @@ base {
     archivesName = project.archives_base_name
 }
 
+tasks.named("remapJar") {
+    archiveClassifier = "mc${project.minecraft_version}"
+}
+
 repositories {
 }
 
@@ -22,9 +26,15 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
+    inputs.property "minecraftVersion", project.minecraft_version
+    inputs.property "minecraftRange", "~${project.minecraft_version}"
+    inputs.property "javaVersion", "21"
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
-               "updateRepo": (project.hasProperty('update_repo') ? project.property('update_repo') : '')
+               "updateRepo": (project.hasProperty('update_repo') ? project.property('update_repo') : ''),
+               "minecraftVersion": project.minecraft_version,
+               "minecraftRange": "~${project.minecraft_version}",
+               "javaVersion": "21"
     }
 }
 
