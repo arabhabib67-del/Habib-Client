@@ -18,7 +18,7 @@ public final class BetaAccessScreen extends Screen {
 
     private final Screen returnTo;
     private EditBox password;
-    private String status = "Enter the password assigned to this account.";
+    private String status = "Enter the shared beta password.";
     private int statusColor = MUTED;
     private boolean checking;
     private int panelX, panelY, panelW, panelH;
@@ -31,11 +31,11 @@ public final class BetaAccessScreen extends Screen {
     @Override
     protected void init() {
         panelW = Math.min(380, width - 24);
-        panelH = 232;
+        panelH = 216;
         panelX = (width - panelW) / 2;
         panelY = (height - panelH) / 2;
 
-        password = new EditBox(font, panelX + 18, panelY + 108, panelW - 36, 24,
+        password = new EditBox(font, panelX + 18, panelY + 85, panelW - 36, 24,
                 Component.literal("Beta password"));
         password.setMaxLength(128);
         password.setBordered(false);
@@ -62,29 +62,23 @@ public final class BetaAccessScreen extends Screen {
         rounded(ctx, panelX + 18, panelY + 18, 22, 22, 7, ACCENT);
         drawCentered(ctx, "H", panelX + 29, panelY + 24, 0xFFFFFFFF);
         draw(ctx, "HABIB CLIENT  /  BETA ACCESS", panelX + 50, panelY + 21, TEXT);
-        draw(ctx, "This account needs approval to use the beta.", panelX + 18, panelY + 51, MUTED);
+        draw(ctx, "Enter the shared beta password to unlock the modules.", panelX + 18, panelY + 51, MUTED);
 
-        draw(ctx, "ACCOUNT  " + BetaAccess.currentUsername(), panelX + 18, panelY + 73, TEXT);
-        String uuid = BetaAccess.currentUserId();
-        draw(ctx, "UUID  " + (uuid.isBlank() ? "Account ID unavailable" : uuid), panelX + 18, panelY + 87, MUTED);
-        drawButton(ctx, panelX + panelW - 76, panelY + 80, 58, 19, "Copy ID",
-                inside(mouseX, mouseY, panelX + panelW - 76, panelY + 80, 58, 19), 0x30343E4B);
-
-        draw(ctx, "PASSWORD", panelX + 18, panelY + 101, MUTED);
-        rounded(ctx, panelX + 16, panelY + 106, panelW - 32, 28, 9, 0x55FFFFFF);
-        rounded(ctx, panelX + 17, panelY + 107, panelW - 34, 26, 8, 0xB8090C12);
+        draw(ctx, "PASSWORD", panelX + 18, panelY + 75, MUTED);
+        rounded(ctx, panelX + 16, panelY + 80, panelW - 32, 28, 9, 0x55FFFFFF);
+        rounded(ctx, panelX + 17, panelY + 81, panelW - 34, 26, 8, 0xB8090C12);
         password.setX(panelX + 24);
-        password.setY(panelY + 112);
+        password.setY(panelY + 86);
         password.setWidth(panelW - 48);
         password.setHeight(18);
         password.extractWidgetRenderState(ctx, mouseX, mouseY, delta);
 
-        draw(ctx, status, panelX + 18, panelY + 143, statusColor);
-        boolean unlockOver = inside(mouseX, mouseY, panelX + 16, panelY + 163, panelW - 32, 26);
-        drawButton(ctx, panelX + 16, panelY + 163, panelW - 32, 26,
-                checking ? "Checking..." : "Unlock client", unlockOver, ACCENT);
-        drawCentered(ctx, "Your password is checked online and isn't saved here.",
-                panelX + panelW / 2, panelY + 202, 0xFFABB6C4);
+        draw(ctx, status, panelX + 18, panelY + 116, statusColor);
+        boolean unlockOver = inside(mouseX, mouseY, panelX + 16, panelY + 138, panelW - 32, 26);
+        drawButton(ctx, panelX + 16, panelY + 138, panelW - 32, 26,
+                checking ? "Checking..." : "Unlock modules", unlockOver, ACCENT);
+        drawCentered(ctx, "Unlocked until you close the game.",
+                panelX + panelW / 2, panelY + 178, 0xFFABB6C4);
     }
 
     private void tryUnlock() {
@@ -97,7 +91,7 @@ public final class BetaAccessScreen extends Screen {
         String value = password.getValue();
         password.setValue("");
         checking = true;
-        status = "Checking your account and password...";
+        status = "Checking password...";
         statusColor = MUTED;
         BetaAccess.authenticate(value, result -> {
             checking = false;
@@ -109,16 +103,7 @@ public final class BetaAccessScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-        if (click.button() == 0 && inside(click.x(), click.y(), panelX + panelW - 76, panelY + 80, 58, 19)) {
-            String uuid = BetaAccess.currentUserId();
-            if (!uuid.isBlank()) {
-                Minecraft.getInstance().keyboardHandler.setClipboard(uuid);
-                status = "Account UUID copied.";
-                statusColor = 0xFF8CE5A2;
-            }
-            return true;
-        }
-        if (click.button() == 0 && inside(click.x(), click.y(), panelX + 16, panelY + 163, panelW - 32, 26)) {
+        if (click.button() == 0 && inside(click.x(), click.y(), panelX + 16, panelY + 138, panelW - 32, 26)) {
             tryUnlock();
             return true;
         }

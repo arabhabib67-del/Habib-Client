@@ -53,9 +53,16 @@ Settings are saved to `config/habibclient.json`.
 
 ## Beta access
 
-Beta builds can require an individual password for each Minecraft account. On first launch, the client shows the account UUID and a **Copy ID** button. The beta host adds that UUID and its unique password on the hosted admin page. Access is checked online and lasts for the current game session; revoking an account blocks its next login after the player restarts the game.
+All beta testers use one shared password. Enter it once when the game opens; it unlocks the modules until the game closes.
 
-Deploy and manage the hosted verifier by following [beta-access/README.md](beta-access/README.md). The verifier URL must be set in both Gradle property files before publishing a beta release. Keep the admin token on the server; it never belongs in the client jar.
+Before building or publishing beta jars, add a GitHub Actions repository secret named `BETA_ACCESS_PASSWORD`:
+
+1. Open the Habib Client repository on GitHub and choose **Settings**.
+2. Open **Secrets and variables** → **Actions**.
+3. Choose **New repository secret**, enter `BETA_ACCESS_PASSWORD` as the name, and enter the shared tester password as the value.
+4. Save it. For this 1.14.8 update, open the failed run under **Actions** and choose **Re-run jobs**. Later updates build automatically when you push a version change. Give testers the same password you saved as the secret.
+
+Do not put the password in a source file, Gradle properties file, commit, or issue. This is a simple beta gate: every tester shares the same password, so they can pass it on, and someone with a jar could attempt to guess it offline. Use a unique password that you do not use anywhere else.
 
 ## Auto-update
 The mod can update itself from your own GitHub repo, so you never have to send or copy a jar by hand again.
