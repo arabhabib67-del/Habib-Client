@@ -319,7 +319,18 @@ public class MenuScreen extends Screen implements GlassScreen {
         ch = ph - HEADER_H - 24;
     }
 
-    private int tabY(int i) { return py + HEADER_H + 8 + 25 * i; }
+    private int tabAreaHeight() { return pillY() - 8 - (py + HEADER_H + 8); }
+
+    private int tabHeight() {
+        return Math.max(18, Math.min(TAB_H, tabAreaHeight() / TABS.length));
+    }
+
+    private int tabStride() {
+        return Math.max(tabHeight(), Math.min(TAB_H + 1,
+                (tabAreaHeight() - tabHeight()) / Math.max(1, TABS.length - 1)));
+    }
+
+    private int tabY(int i) { return py + HEADER_H + 8 + tabStride() * i; }
 
     private int rowY(int j) {
         return cy + 36 + j * ROW_STRIDE - Math.round(scroll);
@@ -558,14 +569,18 @@ public class MenuScreen extends Screen implements GlassScreen {
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
         highlightY = approach(highlightY, targetY, dt, 18f);
-        rrect(ctx, px + 11, Math.round(highlightY), SIDE_W - 13, TAB_H, 7, alpha(ThemeManager.palette().selected, a));
+        int tabHeight = tabHeight();
+        int tabTextOffset = (tabHeight - 9) / 2;
+        int tabIconOffset = (tabHeight - 10) / 2;
+        rrect(ctx, px + 11, Math.round(highlightY), SIDE_W - 13, tabHeight, 7, alpha(ThemeManager.palette().selected, a));
         for (int i = 0; i < TABS.length; i++) {
             boolean active = TABS[i] == tab;
-            boolean over = inside(mx, my, px + 11, tabY(i), SIDE_W - 13, TAB_H);
+            int rowY = tabY(i);
+            boolean over = inside(mx, my, px + 11, rowY, SIDE_W - 13, tabHeight);
             tabHover[i] = hoverSpring(2048 + i, over);
-            if (!active) rrect(ctx, px + 11, tabY(i), SIDE_W - 13, TAB_H, 7, alpha(ROW_HOVER, a * tabHover[i] * 0.55f));
-            GlassRenderer.icon(ctx, i, px + 19, tabY(i) + 7, alpha(active ? ACCENT : MUTED, a));
-            txt(ctx, TABS[i].label, px + 38, tabY(i) + 8, alpha(active ? TEXT : MUTED, a));
+            if (!active) rrect(ctx, px + 11, rowY, SIDE_W - 13, tabHeight, 7, alpha(ROW_HOVER, a * tabHover[i] * 0.55f));
+            GlassRenderer.icon(ctx, i, px + 19, rowY + tabIconOffset, alpha(active ? ACCENT : MUTED, a));
+            txt(ctx, TABS[i].label, px + 38, rowY + tabTextOffset, alpha(active ? TEXT : MUTED, a));
         }
         boolean updateOver = inside(mx, my, pillX(), pillY(), SIDE_W - 20, 20);
         rrect(ctx, pillX(), pillY(), SIDE_W - 20, 20, 7, alpha(updateOver ? ROW_HOVER : ROW, a));
@@ -1732,7 +1747,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         }
         setFocused(null);
         for (int i = 0; i < TABS.length; i++) {
-            if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, TAB_H)) {
+            if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, tabHeight())) {
                 if (!query.isEmpty()) searchField.setValue("");
                 select(TABS[i]); return true;
             }

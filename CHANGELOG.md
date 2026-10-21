@@ -1,6 +1,9 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## Unreleased
+- Sidebar tabs now compact to fit above the updater status on shorter game windows, preventing the Camera tab from overlapping it.
+
 ## 1.15.4 - Hero-style anchor placement optimizer
 - In multiplayer, a charged respawn anchor that is used to explode now becomes a replaceable client-side placeholder immediately after the click, so another block can be placed in the same spot without waiting for the server's block update.
 - The server remains authoritative and corrects the placeholder with its next block update; no extra packets or automated actions are sent.
