@@ -86,7 +86,8 @@ public class HabibClient implements ClientModInitializer {
                 ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
         zooming = zoomKey.isDown() && mc.player != null;
         int targetFov = zooming
-                ? Math.max(30, Math.min(110, Math.round(baseFov * HabibConfig.zoomFactor)))
+                ? Math.max(HabibConfig.MIN_FOV,
+                        Math.min(HabibConfig.MAX_FOV, Math.round(baseFov * HabibConfig.zoomFactor)))
                 : baseFov;
         if (fov.get() != targetFov) {
             fov.set(targetFov);

@@ -1,6 +1,9 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.2 - Higher FOV range
+- Raised the separate first-person and third-person FOV limit from 110° to 170° on Minecraft 1.21.11 and 26.2.
+
 ## 1.15.1 - Separate first and third person FOV
 - Added independent first-person and third-person field-of-view controls in the Camera tab, adjustable from 30° to 110°.
 - The active camera view switches to its saved FOV, and hold-to-zoom follows that view's setting.

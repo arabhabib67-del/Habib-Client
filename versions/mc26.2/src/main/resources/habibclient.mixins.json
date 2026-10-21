@@ -7,7 +7,9 @@
     "MinecraftClientMixin",
     "ClientPlayNetworkHandlerMixin",
     "ParticleManagerMixin",
-    "MenuBlurMixin"
+    "MenuBlurMixin",
+    "FovUnlockMixin",
+    "OptionInstanceAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

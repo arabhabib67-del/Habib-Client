@@ -16,6 +16,9 @@ import java.util.Map;
 
 /** Saves/loads module positions, scale, colour and enabled state to config/habibclient.json. */
 public final class HabibConfig {
+    public static final int MIN_FOV = 30;
+    public static final int MAX_FOV = 170;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("habibclient.json");
 
@@ -226,7 +229,7 @@ public final class HabibConfig {
     }
 
     private static int clampFov(int fov) {
-        return fov < 30 ? -1 : Math.max(30, Math.min(110, fov));
+        return fov < MIN_FOV ? -1 : Math.max(MIN_FOV, Math.min(MAX_FOV, fov));
     }
 
     public static void save() {

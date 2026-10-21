@@ -1618,7 +1618,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         int activeFov = firstPerson ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
         txt(ctx, "Active view: " + (firstPerson ? "First person" : "Third person")
                 + "  ·  " + activeFov + "°", cx + 2, oy + 126, alpha(ACCENT, ca));
-        txt(ctx, "Hold C to zoom using the active view's FOV.", cx + 2, oy + 145, alpha(MUTED, ca));
+        txt(ctx, "30°–170° · Hold C to zoom using the active view's FOV.", cx + 2, oy + 145, alpha(MUTED, ca));
     }
 
     private void hudPositionField(DrawContext ctx, TextFieldWidget field, int x, int y, int w, int value, String axis, int mx, int my, float a) {
@@ -1826,8 +1826,8 @@ public class MenuScreen extends Screen implements GlassScreen {
     private boolean adjustFov(double mx, double my, int y, int minusX, int plusX, boolean firstPerson) {
         if (!inside(mx, my, cx, y, cw, 30)) return false;
         int value = firstPerson ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
-        if (inside(mx, my, minusX, y + 5, 22, 20)) value = Math.max(30, value - 5);
-        else if (inside(mx, my, plusX, y + 5, 22, 20)) value = Math.min(110, value + 5);
+        if (inside(mx, my, minusX, y + 5, 22, 20)) value = Math.max(HabibConfig.MIN_FOV, value - 5);
+        else if (inside(mx, my, plusX, y + 5, 22, 20)) value = Math.min(HabibConfig.MAX_FOV, value + 5);
         else return true;
 
         if (firstPerson) HabibConfig.firstPersonFov = value;
