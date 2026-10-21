@@ -25,7 +25,7 @@ public abstract class FovUnlockMixin {
         fov = new SimpleOption<>(
                 "options.fov",
                 access.habib$getTooltipFactory(),
-                access.habib$getTextGetter(),
+                (caption, value) -> access.habib$getTextGetter().apply(value),
                 new SimpleOption.ValidatingIntSliderCallbacks(30, 170),
                 Codec.intRange(30, 170),
                 original.getValue(),

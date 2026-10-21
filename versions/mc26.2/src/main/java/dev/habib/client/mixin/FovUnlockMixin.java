@@ -25,7 +25,7 @@ public abstract class FovUnlockMixin {
         fov = new OptionInstance<>(
                 "options.fov",
                 access.habib$getTooltip(),
-                access.habib$getCaption(),
+                (caption, value) -> access.habib$getCaption().apply(value),
                 new OptionInstance.IntRange(30, 170),
                 Codec.intRange(30, 170),
                 original.get(),

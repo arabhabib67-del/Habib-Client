@@ -96,3 +96,6 @@ tasks.named('check') { dependsOn 'verifyAppearance' }
 
 // The assertion runner is executed by verifyAppearance, not by a test-framework adapter.
 tasks.named("test") { exclude "**/AppearanceChecks.class" }
+
+// Shared font assets and their redistribution license.
+sourceSets.main.resources.srcDir("shared/src/main/resources")

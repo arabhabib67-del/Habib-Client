@@ -8,8 +8,11 @@
     "ClientPlayNetworkHandlerMixin",
     "ParticleManagerMixin",
     "MenuBlurMixin",
+    "UiFontAccessor",
+    "UiFontTextureMixin",
     "FovUnlockMixin",
     "SimpleOptionAccessor"
+
   ],
   "injectors": {
     "defaultRequire": 1

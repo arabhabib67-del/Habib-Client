@@ -33,7 +33,7 @@ public final class ThemeManager {
     public static String systemDescription() { return system.source(); }
     public static float animate(float current, float target, float dt, float speed) {
         if (!HabibConfig.appearance.animations) return target;
-        return current + (target - current) * (1f - (float) Math.exp(-Math.max(0f, Math.min(dt, 0.1f)) * speed));
+        return AnimationUtils.follow(current, target, dt, speed);
     }
 }
 

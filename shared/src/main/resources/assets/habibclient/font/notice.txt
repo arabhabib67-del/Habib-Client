@@ -1,0 +1,5 @@
+Habib UI static font instances are derived from Inter by the Inter Project Authors.
+Source revision: https://github.com/google/fonts/tree/0b58fb370093f9a9f4ff785d94405710b79de67c/ofl/inter
+Prepared using tools/prepare_ui_fonts.py with fonttools 4.67.0: optical size 14, weights 450 and 600, renamed to Habib UI.
+The font software remains licensed under the SIL Open Font License 1.1; see ofl-inter.txt.
+Upstream copyright and license metadata are preserved in both files.

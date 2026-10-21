@@ -1,6 +1,7 @@
 package dev.habib.client.gui;
 
 import dev.habib.client.gui.render.GlassRenderer;
+import dev.habib.client.gui.render.UiTypography;
 import dev.habib.client.gui.theme.*;
 import dev.habib.client.config.HabibConfig;
 import dev.habib.client.beta.BetaAccess;
@@ -29,7 +30,7 @@ public final class BetaAccessScreen extends Screen implements GlassScreen {
     private int panelX, panelY, panelW, panelH;
 
     public BetaAccessScreen(Screen returnTo) {
-        super(Text.literal("Habib Client Beta Access"));
+        super(MinecraftClient.getInstance(), UiTypography.create(MinecraftClient.getInstance().textRenderer), Text.literal("Habib Client Beta Access"));
         this.returnTo = returnTo;
     }
 

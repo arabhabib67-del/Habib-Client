@@ -1,8 +1,15 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
-## Unreleased
-- Sidebar tabs now compact to fit above the updater status on shorter game windows, preventing the Camera tab from overlapping it.
+## 1.15.5 - Smoother charcoal interface
+- Fixed a startup crash caused by incorrect FOV text-field accessor types in both Minecraft builds.
+- Added a spring opening animation, rounder pill controls and smooth filtered shape masks.
+- Kept pointer input aligned while the menu scales, with immediate transitions when animations are disabled.
+- Replaced the menu header monogram with a small geometric cartoon bomb icon.
+- Refined the charcoal theme with neutral greys, an inset sidebar, softer cards and menu-local regular/semibold sans-serif typography.
+- Added font atlas smoothing, finer small-control curves and fractional animation positions; motion checks cover 30/60/144 FPS.
+- Verified the updated menu interactions in isolated Minecraft 1.21.11 and 26.2 development clients.
+- Sidebar tabs compact above the updater badge on shorter windows.
 
 ## 1.15.4 - Hero-style anchor placement optimizer
 - In multiplayer, a charged respawn anchor that is used to explode now becomes a replaceable client-side placeholder immediately after the click, so another block can be placed in the same spot without waiting for the server's block update.
@@ -20,6 +27,7 @@ Version numbers for 1.1.0 and up were assigned afterwards to group the changes i
 - Added independent first-person and third-person field-of-view controls in the Camera tab, adjustable from 30° to 110°.
 - The active camera view switches to its saved FOV, and hold-to-zoom follows that view's setting.
 - Applied the feature to Minecraft 1.21.11 and 26.2.
+
 
 ## 1.15.0 - Adaptive Liquid Glass interface
 - Added Auto, Light and Dark appearances with asynchronous system-theme detection and live updates.

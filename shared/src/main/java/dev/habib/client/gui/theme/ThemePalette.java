@@ -6,16 +6,16 @@ public final class ThemePalette {
 
     void update(float dark, AppearanceSettings settings) {
         int opacity = Math.round((settings.reducedTransparency ? 0.98f : 0.50f + settings.opacity * 0.46f) * 255);
-        panel = (opacity << 24) | (mix(0xFFD9DCE2, 0xFF20242C, dark) & 0xFFFFFF);
-        sidebar = mix(0x65ACB1BA, 0x7013171D, dark);
-        row = mix(0x64FFFFFF, 0x382D333E, dark);
-        hover = mix(0xA0FFFFFF, 0x80535B69, dark);
-        text = mix(0xFF222630, 0xFFF2F4F8, dark);
-        muted = mix(0xFF575E69, 0xFFACB4C2, dark);
-        edge = mix(0x75FFFFFF, 0x45DDE5F2, dark);
-        track = mix(0xFFAFB3BB, 0xFF505764, dark);
+        panel = (opacity << 24) | (mix(0xFFD1D0CD, 0xFF262626, dark) & 0xFFFFFF);
+        sidebar = mix(0x48918F8A, 0x65151515, dark);
+        row = mix(0x26FFFFFF, 0x263E3E3E, dark);
+        hover = mix(0x4FFFFFFF, 0x59646464, dark);
+        text = mix(0xFF262626, 0xFFF0F0F0, dark);
+        muted = mix(0xFF5B5B5B, 0xFFADADAD, dark);
+        edge = mix(0x5AFFFFFF, 0x2CFFFFFF, dark);
+        track = mix(0xFFA5A5A5, 0xFF555555, dark);
         accent = settings.accent;
-        selected = mix(0xB8FFFFFF, 0x804D5665, dark);
+        selected = mix(0x38959491, 0x665B5B5B, dark);
         int luminance = ((accent >> 16 & 255) * 299 + (accent >> 8 & 255) * 587 + (accent & 255) * 114) / 1000;
         accentText = luminance > 170 ? 0xFF202630 : 0xFFFFFFFF;
     }
