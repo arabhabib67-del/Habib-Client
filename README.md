@@ -7,7 +7,7 @@ A PvP-focused client-side Fabric mod for **Minecraft 1.21.11** and **26.2**. Eve
 Open the menu with **Right Shift**. The existing categories and module controls now use one adaptive glass layout, with smooth switches, scrolling, rounded search fields and an Appearance page.
 
 - **Auto** (default) follows Windows' application theme, with best-effort macOS and GTK/GNOME detection. A daemon checks every five seconds without blocking rendering. Unsupported desktops use dark glass; Light and Dark always override detection.
-- **Glass Transparency** adjusts surface opacity from 35% to 100%. A higher value makes the panels less transparent.
+- **Glass Transparency** adjusts panel opacity. A higher value makes the panels less transparent.
 - **Background Blur** uses Minecraft's real background blur. Strength is adjustable from 1 to 10. The override applies only while Habib screens are open and does not change saved Minecraft video options.
 - **Reduced Transparency** makes surfaces almost opaque and disables blur, decorative gradients and layered shadows. **Animations** can be disabled independently.
 - Blue, purple, orange and white accents are available. **Reset Appearance** asks for confirmation and restores visual defaults.
