@@ -1,6 +1,11 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.1 - Separate first and third person FOV
+- Added independent first-person and third-person field-of-view controls in the Camera tab, adjustable from 30° to 110°.
+- The active camera view switches to its saved FOV, and hold-to-zoom follows that view's setting.
+- Applied the feature to Minecraft 1.21.11 and 26.2.
+
 ## 1.15.0 - Adaptive Liquid Glass interface
 - Added Auto, Light and Dark appearances with asynchronous system-theme detection and live updates.
 - Added persistent transparency, genuine vanilla blur and strength, reduced effects, animations and accent preferences, independent of gameplay profiles.
