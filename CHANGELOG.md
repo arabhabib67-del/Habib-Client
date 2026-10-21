@@ -2,6 +2,7 @@
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
 ## 1.15.1 - Smoother charcoal interface
+- Replaced the menu header monogram with a small geometric cartoon bomb icon.
 - Refined the charcoal theme with neutral greys, an inset sidebar, softer cards and menu-local regular/semibold sans-serif typography.
 - Added font atlas smoothing, finer small-control curves and fractional animation positions; motion checks cover 30/60/144 FPS.
 - Verified the updated menu interactions in isolated Minecraft 1.21.11 and 26.2 development clients.

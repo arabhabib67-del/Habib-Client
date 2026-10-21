@@ -30,3 +30,7 @@ These are actual Minecraft 1.21.11 development screenshots at 1600 x 900. They w
 ![Modules](screenshots/liquid-glass-modules.png)
 
 ![HUD editor](screenshots/liquid-glass-hud.png)
+
+The menu header uses a geometric cartoon bomb mark. The screenshot below shows it in the isolated 1.21.11 client.
+
+![Menu logo](screenshots/cartoon-bomb-logo.png)

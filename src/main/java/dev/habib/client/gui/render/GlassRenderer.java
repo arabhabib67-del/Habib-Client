@@ -120,6 +120,17 @@ public final class GlassRenderer {
         rounded(ctx, end - 5, y + 2, 10, 10, 5, ThemePalette.alpha(0xFFF7FAFF, opacity));
     }
 
+    /** Compact cartoon bomb mark, drawn geometrically so it works with every font. */
+    public static void bomb(DrawContext ctx, int x, int y, int color, int accent) {
+        rounded(ctx, x + 1, y + 6, 14, 14, 7, color);
+        rounded(ctx, x + 10, y + 4, 5, 5, 2, color);
+        rounded(ctx, x + 13, y + 1, 2, 5, 1, color);
+        rounded(ctx, x + 14, y + 1, 4, 2, 1, color);
+        rounded(ctx, x + 18, y, 2, 2, 1, accent);
+        rounded(ctx, x + 18, y + 4, 2, 2, 1, accent);
+        rounded(ctx, x + 4, y + 9, 3, 4, 2, ThemePalette.alpha(ThemeManager.palette().panel, 0.65f));
+    }
+
     /** Small geometric icons avoid font-dependent Unicode glyphs. */
     public static void icon(DrawContext ctx, int kind, int x, int y, int color) {
         if (kind == 1) { // crossed blades

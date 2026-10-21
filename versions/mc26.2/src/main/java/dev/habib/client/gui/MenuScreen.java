@@ -540,7 +540,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         txt(ctx, "Modules", px + 23, py + 24, alpha(MUTED, a));
 
         GlassRenderer.surface(ctx, cx, py + 16, 26, 26, 8, alpha(HAIR, a), alpha(ROW_HOVER, a));
-        txtCentered(ctx, "H", cx + 13, py + 25, alpha(TEXT, a));
+        GlassRenderer.bomb(ctx, cx + 3, py + 19, alpha(TEXT, a), alpha(ACCENT, a));
         sectionTitle(ctx, "Habib Client", cx + 36, py + 16, a);
         txt(ctx, "Premium. Performance. Control.", cx + 36, py + 33, alpha(MUTED, a));
 
