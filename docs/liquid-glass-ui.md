@@ -17,11 +17,11 @@ Windows application-theme detection was exercised locally. macOS and Linux detec
 - Exercise module switches, scale and colour, animation settings, packs, optimizers, effects, presets and profile sharing.
 - In HUD Editor, change coordinates, scale and armor dropdowns; open the full-screen editor and drag, resize and recolour a widget.
 - Toggle blur, reduced transparency and animations, and verify the preferences after restart and profile loading.
-- Merge the feature PR only after review. The existing main-branch workflow then builds and publishes 1.15.0 for both Minecraft versions; installed clients receive it through the existing updater after the release succeeds.
+- Merge the feature PR only after review. The existing main-branch workflow then builds and publishes 1.15.1 for both Minecraft versions; installed clients receive it through the existing updater after the release succeeds.
 
 ## Development screenshots
 
-These are actual Minecraft 1.21.11 development screenshots at 1600 x 900. Small-window behavior was also exercised at 854 x 480.
+These are actual Minecraft 1.21.11 development screenshots at 1600 x 900. They were captured before the 1.15.1 version increment. Small-window behavior was also exercised at 854 x 480.
 
 ![Light appearance](screenshots/liquid-glass-light.png)
 
