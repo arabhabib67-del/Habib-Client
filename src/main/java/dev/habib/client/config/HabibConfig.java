@@ -1,5 +1,6 @@
 package dev.habib.client.config;
 
+import dev.habib.client.gui.theme.AppearanceSettings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dev.habib.client.hud.HudManager;
@@ -58,6 +59,8 @@ public final class HabibConfig {
     /** Armor HUD durability: 0 = uses left, 1 = percent, 2 = vanilla durability bar, 3 = hidden. */
     public static int armorDurability = 0;
 
+    public static volatile AppearanceSettings appearance = new AppearanceSettings();
+
     private static class ModuleData {
         boolean enabled = true;
         int x;
@@ -67,6 +70,7 @@ public final class HabibConfig {
     }
 
     private static class Data {
+        AppearanceSettings appearance = new AppearanceSettings();
         float zoomFactor = 0.25f;
         int swingStyle = 1;
         float swingIntensity = 1f;
@@ -108,6 +112,7 @@ public final class HabibConfig {
 
     private static Data capture() {
         Data data = new Data();
+        data.appearance = appearance;
         data.zoomFactor = zoomFactor;
         data.swingStyle = swingStyle;
         data.swingIntensity = swingIntensity;
@@ -143,6 +148,7 @@ public final class HabibConfig {
     /** Current settings as compact JSON for profiles and share codes. Never includes the updater settings. */
     static String snapshotJson() {
         Data data = capture();
+        data.appearance = null; // appearance belongs to this installation, not a share code
         data.updateRepo = "";
         data.autoUpdate = true;
         return new Gson().toJson(data);
@@ -179,6 +185,8 @@ public final class HabibConfig {
         swingIntensity = Math.max(0.25f, Math.min(2f, data.swingIntensity));
         hudBackground = data.hudBackground;
         if (updater) {
+            appearance = data.appearance == null ? new AppearanceSettings() : data.appearance;
+            appearance.sanitize();
             updateRepo = data.updateRepo == null ? "" : data.updateRepo;
             autoUpdate = data.autoUpdate;
         }

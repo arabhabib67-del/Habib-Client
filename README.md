@@ -2,6 +2,22 @@
 
 A PvP-focused client-side Fabric mod for **Minecraft 1.21.11** and **26.2**. Every HUD element is a draggable module. Install the jar matching your Minecraft version; each version uses its own compatible build.
 
+## Liquid Glass interface
+
+Open the menu with **Right Shift**. The existing categories and module controls now use one adaptive glass layout, with smooth switches, scrolling, rounded search fields and an Appearance page.
+
+- **Auto** (default) follows Windows' application theme, with best-effort macOS and GTK/GNOME detection. A daemon checks every five seconds without blocking rendering. Unsupported desktops use dark glass; Light and Dark always override detection.
+- **Glass Transparency** adjusts panel opacity. A higher value makes the panels less transparent.
+- **Background Blur** uses Minecraft's real background blur. Strength is adjustable from 1 to 10. The override applies only while Habib screens are open and does not change saved Minecraft video options.
+- **Reduced Transparency** makes surfaces almost opaque and disables blur, decorative gradients and layered shadows. **Animations** can be disabled independently.
+- Blue, purple, orange and white accents are available. **Reset Appearance** asks for confirmation and restores visual defaults.
+- Appearance is saved under the appearance key in config/habibclient.json. Older configs receive safe defaults. Loading or sharing a gameplay profile keeps the local appearance preferences.
+- **HUD Editor** has a widget list, editable X/Y coordinates, scale and colour controls, and a live widget preview. The full-screen drag editor, snapping, scroll-to-resize and right-click colour changes remain available. Armor style and durability use dropdowns.
+
+Panels scale together when the Minecraft window is small. HUD positions remain in Minecraft's original screen coordinates. Main-menu previews use Minecraft's panorama; in-game menus leave the world visible behind the glass.
+
+See [UI verification and architecture](docs/liquid-glass-ui.md) for build commands and testing limits. Liquid Glass UI implementation by **Bloko**; the existing Habib Client authorship and MIT notice are preserved.
+
 ## Modules
 | Module | What it shows |
 |---|---|

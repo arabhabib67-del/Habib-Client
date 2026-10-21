@@ -6,7 +6,8 @@
     "HeldItemRendererMixin",
     "MinecraftClientMixin",
     "ClientPlayNetworkHandlerMixin",
-    "ParticleManagerMixin"
+    "ParticleManagerMixin",
+    "MenuBlurMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -2,9 +2,11 @@ name: Build and release Habib Client
 on:
   push:
     branches: [main, master]
+  pull_request:
+    branches: [main, master]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   build-1-21-11:
     runs-on: ubuntu-latest
@@ -13,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check shared beta password
+        if: github.event_name != 'pull_request'
         run: |
           if [ -z "$BETA_ACCESS_PASSWORD" ]; then
             echo "Add the BETA_ACCESS_PASSWORD repository secret before building beta jars."
@@ -22,7 +25,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - run: chmod +x gradlew && ./gradlew remapJar
+      - run: chmod +x gradlew && ./gradlew build
       - uses: actions/upload-artifact@v4
         with:
           name: habib-client-mc1.21.11
@@ -36,6 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check shared beta password
+        if: github.event_name != 'pull_request'
         run: |
           if [ -z "$BETA_ACCESS_PASSWORD" ]; then
             echo "Add the BETA_ACCESS_PASSWORD repository secret before building beta jars."
@@ -45,7 +49,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-      - run: chmod +x gradlew && ./gradlew jar
+      - run: chmod +x gradlew && ./gradlew build
         working-directory: versions/mc26.2
       - uses: actions/upload-artifact@v4
         with:
@@ -54,6 +58,9 @@ jobs:
           if-no-files-found: error
 
   release:
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs: [build-1-21-11, build-26-2]
     steps:

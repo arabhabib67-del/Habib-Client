@@ -1,6 +1,13 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.0 - Adaptive Liquid Glass interface
+- Added Auto, Light and Dark appearances with asynchronous system-theme detection and live updates.
+- Added persistent transparency, genuine vanilla blur and strength, reduced effects, animations and accent preferences, independent of gameplay profiles.
+- Restyled the menu and beta access panel with shared palettes, antialiased rounded glass, soft shadows, consistent switches, responsive scaling and module search.
+- Added a HUD widget list, position inputs, scale control, live preview and armor dropdowns while preserving the full-screen layout editor.
+- Added a confirmation dialog for appearance reset, update-status tooltips and cross-version appearance checks in pull-request builds.
+
 ## 1.14.7 - Refined hover motion and clearer text
 - Softened the menu's spring hover effect to use a restrained one-pixel lift and glow across controls, including pack actions and pack tabs.
 - Increased the contrast of secondary labels and added text shadowing so menu copy stays readable over the translucent panel.
