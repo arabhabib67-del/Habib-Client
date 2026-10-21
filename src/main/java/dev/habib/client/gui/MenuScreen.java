@@ -113,7 +113,11 @@ public class MenuScreen extends Screen implements GlassScreen {
 
     // animation state
     private float open;
-    private float openingOffset() { return (1f - open) * 10f; }
+    private float openingTime, openingShape;
+    private float panelZoom() { return 0.9f + 0.1f * openingShape; }
+    private float openingOffset() { return (1f - openingShape) * 18f; }
+    private double panelMouseX(double x) { return (x / uiScale - (px + pw / 2f)) / panelZoom() + px + pw / 2f; }
+    private double panelMouseY(double y) { return (y / uiScale - (py + ph / 2f) - openingOffset()) / panelZoom() + py + ph / 2f; }
     private float tabFade = 1f;
     private float highlightY = -1f;
     private float scroll;
@@ -282,7 +286,9 @@ public class MenuScreen extends Screen implements GlassScreen {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
-    private static void rrect(DrawContext ctx, int x, int y, int w, int h, int r, int color) { GlassRenderer.rounded(ctx, x, y, w, h, r, color); }
+    private static int pillRadius(int w, int h, int radius) { return h >= 18 && h <= 48 && w >= h * 2 ? h / 2 : radius; }
+
+    private static void rrect(DrawContext ctx, int x, int y, int w, int h, int r, int color) { GlassRenderer.rounded(ctx, x, y, w, h, pillRadius(w, h, r), color); }
 
     private static void border(DrawContext ctx, int x, int y, int w, int h, int color) {
         ctx.fill(x, y, x + w, y + 1, color);
@@ -291,7 +297,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         ctx.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
-    private static void glassBorder(DrawContext ctx, int x, int y, int w, int h, int r, int edge, int fill) { GlassRenderer.surface(ctx, x, y, w, h, r, edge, fill); }
+    private static void glassBorder(DrawContext ctx, int x, int y, int w, int h, int r, int edge, int fill) { GlassRenderer.surface(ctx, x, y, w, h, pillRadius(w, h, r), edge, fill); }
 
     private void txt(DrawContext ctx, String s, int x, int y, int color) {
         if (((color >>> 24) & 0xFF) < 12) return;
@@ -497,6 +503,9 @@ public class MenuScreen extends Screen implements GlassScreen {
         open = approach(open, closing ? 0f : 1f, dt, 18f);
         if (closing && open < 0.02f) { super.close(); return; }
         if (!closing && open > 0.995f) open = 1f;
+        openingTime = Math.min(0.8f, openingTime + dt);
+        openingShape = !HabibConfig.appearance.animations ? 1f
+                : closing ? Math.min(openingShape, open) : AnimationUtils.openingSpring(openingTime);
         tabFade = approach(tabFade, 1f, dt, 12f);
         scrollTarget = Math.max(0f, Math.min(maxScroll(), scrollTarget));
         scroll = approach(scroll, scrollTarget, dt, 18f);
@@ -523,8 +532,10 @@ public class MenuScreen extends Screen implements GlassScreen {
             ctx.getMatrices().pushMatrix();
             try {
                 ctx.getMatrices().scale(uiScale, uiScale);
-                ctx.getMatrices().translate(0f, openingOffset());
-                renderPanel(ctx, Math.round(mx / uiScale), Math.round(my / uiScale - openingOffset()), dt, now);
+                ctx.getMatrices().translate(px + pw / 2f, py + ph / 2f + openingOffset());
+                ctx.getMatrices().scale(panelZoom(), panelZoom());
+                ctx.getMatrices().translate(-(px + pw / 2f), -(py + ph / 2f));
+                renderPanel(ctx, (int) Math.round(panelMouseX(mx)), (int) Math.round(panelMouseY(my)), dt, now);
             } finally { ctx.getMatrices().popMatrix(); }
         }
     }
@@ -536,7 +547,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         hudXField.visible = hudYField.visible = tab == Tab.LAYOUT;
         float a = open;
         GlassRenderer.panel(ctx, px, py, pw, ph, a);
-        GlassRenderer.surface(ctx, px + 8, py + 8, SIDE_W - 4, ph - 16, 13, alpha(HAIR, a * 0.45f), alpha(SIDE_BG, a));
+        GlassRenderer.surface(ctx, px + 8, py + 8, SIDE_W - 4, ph - 16, 24, alpha(HAIR, a * 0.45f), alpha(SIDE_BG, a));
         txt(ctx, "Modules", px + 23, py + 24, alpha(MUTED, a));
 
         GlassRenderer.surface(ctx, cx, py + 16, 26, 26, 8, alpha(HAIR, a), alpha(ROW_HOVER, a));
@@ -561,7 +572,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
         highlightY = approach(highlightY, targetY, dt, 18f);
-        GlassRenderer.rounded(ctx, (float) px + 11, highlightY, SIDE_W - 13, TAB_H, 7, alpha(ThemeManager.palette().selected, a));
+        GlassRenderer.rounded(ctx, (float) px + 11, highlightY, SIDE_W - 13, TAB_H, 12, alpha(ThemeManager.palette().selected, a));
         for (int i = 0; i < TABS.length; i++) {
             boolean active = TABS[i] == tab;
             boolean over = inside(mx, my, px + 11, tabY(i), SIDE_W - 13, TAB_H);
@@ -1663,8 +1674,8 @@ public class MenuScreen extends Screen implements GlassScreen {
     public boolean mouseClicked(Click click, boolean doubled) {
         geometry();
         if (closing) return true;
-        double mx = layoutMode ? click.x() : click.x() / uiScale;
-        double my = layoutMode ? click.y() : click.y() / uiScale - openingOffset();
+        double mx = layoutMode ? click.x() : panelMouseX(click.x());
+        double my = layoutMode ? click.y() : panelMouseY(click.y());
         int button = click.button();
         if (layoutMode) return layoutClicked(mx, my, button);
         click = new Click(mx, my, click.buttonInfo());
@@ -1816,8 +1827,8 @@ public class MenuScreen extends Screen implements GlassScreen {
     @Override
     public boolean mouseDragged(Click click, double dx, double dy) {
         geometry();
-        double mx = layoutMode ? click.x() : click.x() / uiScale;
-        double my = layoutMode ? click.y() : click.y() / uiScale - openingOffset();
+        double mx = layoutMode ? click.x() : panelMouseX(click.x());
+        double my = layoutMode ? click.y() : panelMouseY(click.y());
         if (hudScaleDrag) { setHudScale(mx); return true; }
         if (appearanceDrag || blurDrag) { if (appearanceDrag) setOpacity(mx); else setBlur(mx); return true; }
         if (sbDrag) {
@@ -1862,7 +1873,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
         geometry();
         if (confirmReset || closing || armorDropdown >= 0) return true;
-        if (!layoutMode) { mx /= uiScale; my = my / uiScale - openingOffset(); }
+        if (!layoutMode) { mx = panelMouseX(mx); my = panelMouseY(my); }
         if (!layoutMode && tab == Tab.LAYOUT && inside(mx, my, cx, cy + 64 - Math.round(scroll), 142, 220)) {
             hudListScroll = Math.max(0, Math.min(Math.max(0, HudManager.MODULES.size() * 24 + 8 - 220), hudListScroll - (float) vertical * 24));
             return true;

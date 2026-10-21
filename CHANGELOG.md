@@ -2,6 +2,8 @@
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
 ## 1.15.1 - Smoother charcoal interface
+- Added a spring opening animation, rounder pill controls and smooth filtered shape masks.
+- Kept pointer input aligned while the menu scales, with immediate transitions when animations are disabled.
 - Replaced the menu header monogram with a small geometric cartoon bomb icon.
 - Refined the charcoal theme with neutral greys, an inset sidebar, softer cards and menu-local regular/semibold sans-serif typography.
 - Added font atlas smoothing, finer small-control curves and fractional animation positions; motion checks cover 30/60/144 FPS.

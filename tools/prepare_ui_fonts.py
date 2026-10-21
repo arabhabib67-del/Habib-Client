@@ -1,7 +1,7 @@
 """Prepare UI font weights from the pinned Inter variable font (fonttools 4.67.0).
 
 Usage: python tools/prepare_ui_fonts.py Inter-variable.ttf output-directory
-Source revision and license are recorded in the generated assets' NOTICE.txt.
+Source revision and license are recorded in the generated assets' notice.txt.
 """
 from pathlib import Path
 import sys
