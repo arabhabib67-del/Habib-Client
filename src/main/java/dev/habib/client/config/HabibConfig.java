@@ -49,6 +49,7 @@ public final class HabibConfig {
     public static boolean anchorOptimizer = false;
 
     /** Screen alerts (all off by default). */
+    public static boolean fullbright = false;
     public static boolean lowHealthWarning = false;
     public static boolean popFlash = false;
     public static boolean popMessages = false;
@@ -93,6 +94,7 @@ public final class HabibConfig {
         boolean pearlOptimizer = false;
         boolean consumableOptimizer = false;
         boolean anchorOptimizer = false;
+        boolean fullbright = false;
         boolean lowHealthWarning = false;
         boolean popFlash = false;
         boolean popMessages = false;
@@ -144,6 +146,7 @@ public final class HabibConfig {
         data.pearlOptimizer = pearlOptimizer;
         data.consumableOptimizer = consumableOptimizer;
         data.anchorOptimizer = anchorOptimizer;
+        data.fullbright = fullbright;
         data.lowHealthWarning = lowHealthWarning;
         data.popFlash = popFlash;
         data.popMessages = popMessages;
@@ -218,6 +221,7 @@ public final class HabibConfig {
         pearlOptimizer = data.pearlOptimizer;
         consumableOptimizer = data.consumableOptimizer;
         anchorOptimizer = data.anchorOptimizer;
+        fullbright = data.fullbright;
         lowHealthWarning = data.lowHealthWarning;
         popFlash = data.popFlash;
         popMessages = data.popMessages;

@@ -54,12 +54,14 @@ public final class NowPlaying {
         }
     }
 
+    /** URL and downloaded image from the same track, published together to avoid stale pairings. */
+    public record ArtworkSnapshot(String url, byte[] bytes) {}
+
     private static volatile Snapshot current;
     private static volatile PlayerStatus playerStatus = PlayerStatus.CHECKING;
     private static volatile long lastAsk;
     private static volatile long lastSuccess;
-    private static volatile String artworkUrl = "";
-    private static volatile byte[] artworkBytes;
+    private static volatile ArtworkSnapshot artwork = new ArtworkSnapshot("", null);
     private static volatile long lastArtworkAttempt;
     private static Thread pollThread;
     private static ExecutorService commandExecutor;
@@ -92,12 +94,17 @@ public final class NowPlaying {
 
     /** Album art bytes for the current track, if the local player exposes a cover URL. */
     public static byte[] artworkBytes() {
-        return artworkBytes;
+        return artwork.bytes();
     }
 
     /** Key for the current art image, used by each Minecraft version's texture loader. */
     public static String artworkUrl() {
-        return artworkUrl;
+        return artwork.url();
+    }
+
+    /** Read the current URL and its bytes as one consistent value. */
+    public static ArtworkSnapshot artworkSnapshot() {
+        return artwork;
     }
 
     /** Queue a Spotify transport action without stalling the game thread. */
@@ -382,16 +389,18 @@ public final class NowPlaying {
 
     private static synchronized void updateArtwork(String url) {
         String next = url == null ? "" : url.trim();
-        if (!Objects.equals(artworkUrl, next)) {
-            artworkUrl = next;
-            artworkBytes = null;
+        ArtworkSnapshot currentArtwork = artwork;
+        if (!Objects.equals(currentArtwork.url(), next)) {
+            artwork = new ArtworkSnapshot(next, null);
+            currentArtwork = artwork;
             lastArtworkAttempt = 0L;
         }
-        if (next.isEmpty() || artworkBytes != null || System.currentTimeMillis() - lastArtworkAttempt < ART_RETRY_MS) return;
+        if (next.isEmpty() || currentArtwork.bytes() != null || System.currentTimeMillis() - lastArtworkAttempt < ART_RETRY_MS) return;
         lastArtworkAttempt = System.currentTimeMillis();
         artworkExecutor().execute(() -> {
             byte[] bytes = downloadArtwork(next);
-            if (Objects.equals(artworkUrl, next) && bytes != null) artworkBytes = bytes;
+            ArtworkSnapshot latest = artwork;
+            if (Objects.equals(latest.url(), next) && bytes != null) artwork = new ArtworkSnapshot(next, bytes);
         });
     }
 

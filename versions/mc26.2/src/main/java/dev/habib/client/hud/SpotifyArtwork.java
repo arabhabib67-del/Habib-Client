@@ -19,8 +19,9 @@ final class SpotifyArtwork {
     private SpotifyArtwork() {}
 
     static boolean draw(GuiGraphicsExtractor ctx, Minecraft mc, int x, int y, int size) {
-        String url = NowPlaying.artworkUrl();
-        byte[] bytes = NowPlaying.artworkBytes();
+        NowPlaying.ArtworkSnapshot artwork = NowPlaying.artworkSnapshot();
+        String url = artwork.url();
+        byte[] bytes = artwork.bytes();
         if (bytes != failedBytes) failedUrl = "";
         if (bytes != null && !url.isBlank() && !url.equals(loadedUrl) && !url.equals(failedUrl)) {
             try {

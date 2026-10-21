@@ -11,7 +11,8 @@
     "UiFontAccessor",
     "UiFontTextureMixin",
     "FovUnlockMixin",
-    "OptionInstanceAccessor"
+    "OptionInstanceAccessor",
+    "FullbrightMixin"
 
   ],
   "injectors": {

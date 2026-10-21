@@ -1,6 +1,10 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.7 - Spotify artwork and Fullbright
+- Fixed Spotify album covers being missing or mismatched when switching tracks while the image was loading.
+- Added a saved Fullbright toggle in the Effects tab for Minecraft 1.21.11 and 26.2; it brightens the world without changing the user's gamma setting or adding a potion effect.
+
 ## 1.15.6 - Cleaner, more reliable Spotify player
 - Rebuilt the Spotify HUD card with album art, album details, playback state, progress, and the current configured control keys.
 - Improved Windows media-session selection and fallback status so active playback, idle Spotify, and Spotify being closed are distinguished correctly.

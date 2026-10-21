@@ -372,7 +372,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case APPEARANCE -> 352;
                 case ANIMATIONS -> 240;
                 case OPTIMIZE -> 252;
-                case EFFECTS -> 165;
+                case EFFECTS -> 201;
                 case PRESETS_TAB -> 200;
                 case LAYOUT -> 440;
                 case CAMERA -> 170;
@@ -974,19 +974,22 @@ public class MenuScreen extends Screen implements GlassScreen {
     private float popFlashToggle;
     private float popMessageToggle;
     private float lowArmorToggle;
+    private float fullbrightToggle;
 
     private void renderEffects(DrawContext ctx, int mx, int my, float dt, float ca, int oy) {
         sectionTitle(ctx, "Effects", cx, oy, ca);
-        txt(ctx, "Screen alerts and chat notices. All off until you turn them on.", cx, oy + 12, alpha(MUTED, ca));
+        txt(ctx, "Fullbright, screen alerts and chat notices.", cx, oy + 12, alpha(MUTED, ca));
 
         lowHealthToggle = approach(lowHealthToggle, HabibConfig.lowHealthWarning ? 1f : 0f, dt, 16f);
         popFlashToggle = approach(popFlashToggle, HabibConfig.popFlash ? 1f : 0f, dt, 16f);
         popMessageToggle = approach(popMessageToggle, HabibConfig.popMessages ? 1f : 0f, dt, 16f);
         lowArmorToggle = approach(lowArmorToggle, HabibConfig.lowArmorWarning ? 1f : 0f, dt, 16f);
+        fullbrightToggle = approach(fullbrightToggle, HabibConfig.fullbright ? 1f : 0f, dt, 16f);
         optimizeRow(ctx, mx, my, oy + 28, "Low health warning", "Pulsing red screen edge at 3 hearts or less.", lowHealthToggle, ca);
         optimizeRow(ctx, mx, my, oy + 62, "Totem pop flash", "Gold when you pop, green when your target does.", popFlashToggle, ca);
         optimizeRow(ctx, mx, my, oy + 96, "Totem pop messages", "A chat line when you or your target pops.", popMessageToggle, ca);
         optimizeRow(ctx, mx, my, oy + 130, "Low armor warning", "Orange pulse when a piece is under 10% durability.", lowArmorToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 164, "Fullbright", "Brightens dark areas without a potion effect.", fullbrightToggle, ca);
     }
 
     private void effectsClicked(double mx, double my) {
@@ -1001,6 +1004,9 @@ public class MenuScreen extends Screen implements GlassScreen {
             HabibConfig.save();
         } else if (inside(mx, my, cx, cy + 130, cw, 30)) {
             HabibConfig.lowArmorWarning = !HabibConfig.lowArmorWarning;
+            HabibConfig.save();
+        } else if (inside(mx, my, cx, cy + 164, cw, 30)) {
+            HabibConfig.fullbright = !HabibConfig.fullbright;
             HabibConfig.save();
         }
     }
