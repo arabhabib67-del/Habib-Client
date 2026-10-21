@@ -45,6 +45,8 @@ public final class HabibConfig {
     public static boolean pearlOptimizer = false;
     /** Hides eating, drinking and splash potion particles (visual only). */
     public static boolean consumableOptimizer = false;
+    /** Smooths local respawn-anchor use and hides the nearby blast particles. */
+    public static boolean anchorOptimizer = false;
 
     /** Screen alerts (all off by default). */
     public static boolean lowHealthWarning = false;
@@ -90,6 +92,7 @@ public final class HabibConfig {
         boolean noHitParticles = false;
         boolean pearlOptimizer = false;
         boolean consumableOptimizer = false;
+        boolean anchorOptimizer = false;
         boolean lowHealthWarning = false;
         boolean popFlash = false;
         boolean popMessages = false;
@@ -140,6 +143,7 @@ public final class HabibConfig {
         data.noHitParticles = noHitParticles;
         data.pearlOptimizer = pearlOptimizer;
         data.consumableOptimizer = consumableOptimizer;
+        data.anchorOptimizer = anchorOptimizer;
         data.lowHealthWarning = lowHealthWarning;
         data.popFlash = popFlash;
         data.popMessages = popMessages;
@@ -213,6 +217,7 @@ public final class HabibConfig {
         noHitParticles = data.noHitParticles;
         pearlOptimizer = data.pearlOptimizer;
         consumableOptimizer = data.consumableOptimizer;
+        anchorOptimizer = data.anchorOptimizer;
         lowHealthWarning = data.lowHealthWarning;
         popFlash = data.popFlash;
         popMessages = data.popMessages;

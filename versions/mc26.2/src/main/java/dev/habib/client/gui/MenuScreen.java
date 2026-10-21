@@ -350,7 +350,7 @@ public class MenuScreen extends Screen implements GlassScreen {
             int contentHeight = switch (tab) {
                 case APPEARANCE -> 352;
                 case ANIMATIONS -> 240;
-                case OPTIMIZE -> 220;
+                case OPTIMIZE -> 252;
                 case EFFECTS -> 165;
                 case PRESETS_TAB -> 200;
                 case LAYOUT -> 440;
@@ -900,6 +900,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     private float hitParticleToggle;
     private float pearlToggle;
     private float consumableToggle;
+    private float anchorToggle;
     private float totemParticleToggle;
 
     private void optimizeRow(GuiGraphicsExtractor ctx, int mx, int my, int y, String title, String sub, float t, float ca) {
@@ -921,12 +922,14 @@ public class MenuScreen extends Screen implements GlassScreen {
         hitParticleToggle = approach(hitParticleToggle, HabibConfig.noHitParticles ? 1f : 0f, dt, 16f);
         pearlToggle = approach(pearlToggle, HabibConfig.pearlOptimizer ? 1f : 0f, dt, 16f);
         consumableToggle = approach(consumableToggle, HabibConfig.consumableOptimizer ? 1f : 0f, dt, 16f);
+        anchorToggle = approach(anchorToggle, HabibConfig.anchorOptimizer ? 1f : 0f, dt, 16f);
         optimizeRow(ctx, mx, my, oy + 26, "Crystal optimizer", "Crystals vanish the instant you hit them.", crystalToggle, ca);
         optimizeRow(ctx, mx, my, oy + 58, "No explosion particles", "Cuts the lag from crystal explosions.", particleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 90, "No totem particles", "Hides the totem pop burst. Pop counter still works.", totemParticleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 122, "No hit particles", "Hides crit, enchant-hit and damage particles.", hitParticleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 154, "Ender pearl optimizer", "Hides pearl trail and landing particles. Pearls work as normal.", pearlToggle, ca);
         optimizeRow(ctx, mx, my, oy + 186, "Consumable optimizer", "Hides eating, drinking and splash potion particles.", consumableToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 218, "Anchor optimizer", "Smooths anchor use and reduces nearby blast-particle lag.", anchorToggle, ca);
     }
 
     private float lowHealthToggle;
@@ -1244,6 +1247,9 @@ public class MenuScreen extends Screen implements GlassScreen {
             HabibConfig.save();
         } else if (inside(mx, my, cx, cy + 186, cw, 30)) {
             HabibConfig.consumableOptimizer = !HabibConfig.consumableOptimizer;
+            HabibConfig.save();
+        } else if (inside(mx, my, cx, cy + 218, cw, 30)) {
+            HabibConfig.anchorOptimizer = !HabibConfig.anchorOptimizer;
             HabibConfig.save();
         }
     }

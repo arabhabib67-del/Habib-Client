@@ -1,6 +1,10 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.3 - Respawn anchor optimizer
+- Added an optional smooth hand animation for anchor interactions and reduced nearby anchor blast particles to help avoid visual lag.
+- Added the optimizer toggle to the Optimizers tab for both Minecraft builds. Anchor behavior remains server-controlled.
+
 ## 1.15.2 - Higher FOV range
 - Raised the separate first-person and third-person FOV limit from 110° to 170° on Minecraft 1.21.11 and 26.2.
 
