@@ -395,9 +395,9 @@ public class MenuScreen extends Screen implements GlassScreen {
                                  float bounce, float a) {
         float pop = Math.min(1f, bounce * 8f);
         int spread = Math.round(pop * 1.5f);
-        int lift = Math.round(pop);
         if (pop > 0.18f) {
-            rrect(ctx, x - spread, y - lift, w + spread * 2, h + spread * 2,
+            // Expand evenly around the control's centre so the hover bounce never drifts upward.
+            rrect(ctx, x - spread, y - spread, w + spread * 2, h + spread * 2,
                     radius + spread, alpha(0x24FFFFFF, a * pop));
         }
     }
