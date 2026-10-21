@@ -14,12 +14,14 @@ final class SpotifyArtwork {
     private static final Identifier TEXTURE = Identifier.of("habibclient", "spotify_album_art");
     private static String loadedUrl = "";
     private static String failedUrl = "";
+    private static byte[] failedBytes;
 
     private SpotifyArtwork() {}
 
     static boolean draw(DrawContext ctx, MinecraftClient mc, int x, int y, int size) {
         String url = NowPlaying.artworkUrl();
         byte[] bytes = NowPlaying.artworkBytes();
+        if (bytes != failedBytes) failedUrl = "";
         if (bytes != null && !url.isBlank() && !url.equals(loadedUrl) && !url.equals(failedUrl)) {
             try {
                 NativeImage image = NativeImage.read(new ByteArrayInputStream(bytes));
@@ -28,8 +30,10 @@ final class SpotifyArtwork {
                 texture.upload();
                 loadedUrl = url;
                 failedUrl = "";
+                failedBytes = null;
             } catch (IOException | RuntimeException ignored) {
                 failedUrl = url;
+                failedBytes = bytes;
             }
         }
         if (!url.equals(loadedUrl) || loadedUrl.isBlank()) return false;

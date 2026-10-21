@@ -1,6 +1,12 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.6 - Cleaner, more reliable Spotify player
+- Rebuilt the Spotify HUD card with album art, album details, playback state, progress, and the current configured control keys.
+- Improved Windows media-session selection and fallback status so active playback, idle Spotify, and Spotify being closed are distinguished correctly.
+- Added album metadata and safe parsing across Windows, macOS, and Linux; playback progress and duration now use the correct platform units.
+- Applied the same Spotify reader and HUD updates to Minecraft 1.21.11 and 26.2.
+
 ## 1.15.5 - Smoother charcoal interface
 - Fixed a startup crash caused by incorrect FOV text-field accessor types in both Minecraft builds.
 - Added a spring opening animation, rounder pill controls and smooth filtered shape masks.

@@ -1,18 +1,22 @@
 package dev.habib.client.hud;
 
+import dev.habib.client.HabibClient;
+import dev.habib.client.gui.render.GlassRenderer;
+import dev.habib.client.gui.theme.ThemeManager;
+import dev.habib.client.gui.theme.ThemePalette;
 import dev.habib.client.util.NowPlaying;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.KeyMapping;
 
-/** Now-playing card with album art, progress, and the configurable Spotify playback shortcuts. */
+/** Compact now-playing card with album art, live progress, and the active Spotify shortcuts. */
 public class SpotifyModule extends HudModule {
-    private static final int W = 194;
-    private static final int H = 43;
-    private static final int RED = 0xFFE5484D;
+    private static final int W = 220;
+    private static final int H = 58;
+    private static final int SPOTIFY_GREEN = 0xFF1ED760;
     private static final NowPlaying.Snapshot SAMPLE =
-            new NowPlaying.Snapshot("Artist", "Song title", false, 135_000L, 195_000L, 0L, "");
-    private static final NowPlaying.Snapshot IDLE =
-            new NowPlaying.Snapshot("Spotify", "Nothing playing", false, 0L, 0L, 0L, "");
+            new NowPlaying.Snapshot("Mild Orange", "Some Feeling", "Foreplay", "Playing",
+                    82_000L, 194_000L, 0L, "");
 
     public SpotifyModule(int x, int y) {
         super("spotify", "Spotify", x, y);
@@ -22,52 +26,83 @@ public class SpotifyModule extends HudModule {
 
     @Override
     protected void render(GuiGraphicsExtractor ctx, Minecraft mc, boolean editing) {
-        NowPlaying.Snapshot s = NowPlaying.snapshot();
-        if (s == null || s.title().isEmpty()) {
-            s = editing ? SAMPLE : IDLE;
-        }
+        NowPlaying.Snapshot snapshot = NowPlaying.snapshot();
+        boolean preview = snapshot == null && editing;
+        if (preview) snapshot = SAMPLE;
+        boolean hasTrack = snapshot != null && !snapshot.title().isBlank();
         width = W;
         height = H;
-        box(ctx, 0, 0, W, H, 0x99000000);
 
-        int hue = tileColor(s.title() + s.artist());
-        ctx.fill(4, 4, 32, 32, 0xFF000000 | scale(hue, 0.55f));
-        if (!SpotifyArtwork.draw(ctx, mc, 5, 5, 26)) {
-            ctx.fill(5, 5, 31, 31, 0xFF000000 | hue);
-            String note = "\u266A";
-            ctx.text(mc.font, note, 18 - mc.font.width(note) / 2, 14, 0xFFFFFFFF, false);
+        ThemePalette palette = ThemeManager.palette();
+        if (dev.habib.client.config.HabibConfig.hudBackground) {
+            GlassRenderer.surface(ctx, 0, 0, W, H, 9,
+                    ThemePalette.alpha(palette.edge, 0.78f), ThemePalette.alpha(palette.panel, 0.94f));
         }
 
-        int textX = 37;
-        int rightX = W - 5;
-        boolean timeline = s.hasTimeline();
-        String time = timeline ? NowPlaying.clock(s.positionMs()) + " / " + NowPlaying.clock(s.durMs()) : "";
-        int timeW = timeline ? mc.font.width(time) : 0;
-
-        int titleCol = s.playing() ? 0xFFFFFFFF : 0xFFB0B0B0;
-        ctx.text(mc.font, mc.font.plainSubstrByWidth(s.title(), rightX - textX), textX, 5, titleCol, true);
-        int artistMax = rightX - textX - (timeline ? timeW + 6 : 0);
-        ctx.text(mc.font, mc.font.plainSubstrByWidth(s.artist(), Math.max(10, artistMax)), textX, 16, 0xFF9A9A9A, true);
-        if (timeline) ctx.text(mc.font, time, rightX - timeW, 16, 0xFFB8B8B8, true);
-
-        shortcut(ctx, mc, "|< F7", 37);
-        shortcut(ctx, mc, ">|| F8", 84);
-        shortcut(ctx, mc, "F9 >|", 134);
-
-        if (timeline) {
-            int barL = 4;
-            int barR = W - 4;
-            int barY = 39;
-            int fillCol = !s.playing() ? 0xFF777777 : (color == 0xFFFFFFFF ? RED : color);
-            ctx.fill(barL, barY, barR, barY + 2, 0xFF2B2B2B);
-            int fillW = Math.round((barR - barL) * s.progress());
-            if (fillW > 0) ctx.fill(barL, barY, barL + fillW, barY + 2, fillCol);
+        int tile = hasTrack ? tileColor(snapshot.title() + snapshot.artist()) : 0xFF1B3928;
+        GlassRenderer.rounded(ctx, 7, 8, 36, 36, 7, 0xFF000000 | scale(tile, 0.72f));
+        if (!SpotifyArtwork.draw(ctx, mc, 8, 9, 34)) {
+            String note = "♪";
+            ctx.text(mc.font, note, 25 - mc.font.width(note) / 2, 20,
+                    hasTrack ? palette.text : SPOTIFY_GREEN, false);
         }
+
+        int textX = 51;
+        int rightX = W - 8;
+        String title = hasTrack ? snapshot.title() : "Spotify";
+        String detail = hasTrack ? trackDetails(snapshot) : NowPlaying.statusText();
+        drawTrimmed(ctx, mc, title, textX, 7, rightX - textX,
+                hasTrack ? palette.text : palette.muted, true);
+        drawTrimmed(ctx, mc, detail, textX, 19, rightX - textX, palette.muted, false);
+
+        if (hasTrack) {
+            int progressRight = rightX;
+            if (snapshot.hasTimeline()) {
+                GlassRenderer.rounded(ctx, textX, 32, progressRight - textX, 2, 1,
+                        ThemePalette.alpha(palette.track, 0.75f));
+                int fillWidth = Math.round((progressRight - textX) * snapshot.progress());
+                if (fillWidth > 0) {
+                    int progressColor = color == 0xFFFFFFFF ? SPOTIFY_GREEN : color;
+                    GlassRenderer.rounded(ctx, textX, 32, fillWidth, 2, 1, progressColor);
+                }
+            }
+
+            String state = snapshot.playbackStatus();
+            GlassRenderer.rounded(ctx, textX, 38, 5, 5, 3,
+                    snapshot.playing() ? SPOTIFY_GREEN : palette.muted);
+            ctx.text(mc.font, state, textX + 9, 36, palette.muted, false);
+            if (snapshot.hasTimeline()) {
+                String time = NowPlaying.clock(snapshot.positionMs()) + " / " + NowPlaying.clock(snapshot.durMs());
+                int timeWidth = mc.font.width(time);
+                ctx.text(mc.font, time, rightX - timeWidth, 36, palette.muted, false);
+            }
+        }
+
+        String controls = keyName(HabibClient.spotifyPreviousKey) + " Prev   "
+                + keyName(HabibClient.spotifyPlayPauseKey) + " Play/Pause   "
+                + keyName(HabibClient.spotifyNextKey) + " Next";
+        drawTrimmed(ctx, mc, controls, textX, 48, rightX - textX, palette.muted, false);
     }
 
-    private static void shortcut(GuiGraphicsExtractor ctx, Minecraft mc, String text, int x) {
-        ctx.fill(x, 25, x + 43, 37, 0x8838383C);
-        ctx.text(mc.font, text, x + 4, 28, 0xFFCCCCD0, false);
+    private static String keyName(KeyMapping key) {
+        return key == null ? "-" : key.getTranslatedKeyMessage().getString();
+    }
+
+    private static String trackDetails(NowPlaying.Snapshot snapshot) {
+        if (snapshot.artist().isBlank()) return snapshot.album();
+        return snapshot.album().isBlank() ? snapshot.artist() : snapshot.artist() + " · " + snapshot.album();
+    }
+
+    private static void drawTrimmed(GuiGraphicsExtractor ctx, Minecraft mc, String value, int x, int y,
+                                    int maxWidth, int color, boolean shadow) {
+        if (mc.font.width(value) <= maxWidth) {
+            ctx.text(mc.font, value, x, y, color, shadow);
+            return;
+        }
+        String ellipsis = "…";
+        int textWidth = Math.max(0, maxWidth - mc.font.width(ellipsis));
+        String trimmed = mc.font.plainSubstrByWidth(value, textWidth);
+        ctx.text(mc.font, trimmed + ellipsis, x, y, color, shadow);
     }
 
     private static int tileColor(String seed) {

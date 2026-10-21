@@ -29,15 +29,23 @@ public final class NowPlaying {
     private static final int MAX_CHARS = 60;
     private static final int MAX_ART_BYTES = 4 * 1024 * 1024;
 
+    private enum PlayerStatus {
+        CHECKING, NOT_RUNNING, NOTHING_PLAYING, PERMISSION_REQUIRED, UNAVAILABLE, PLAYING, PAUSED, STOPPED
+    }
+
     /** One reading. Position is as of {@code nanos}; use {@link #positionMs()} for the live value. */
-    public record Snapshot(String artist, String title, boolean playing, long posMs, long durMs,
-                           long nanos, String artworkUrl) {
+    public record Snapshot(String artist, String title, String album, String playbackStatus,
+                           long posMs, long durMs, long nanos, String artworkUrl) {
+        public boolean playing() {
+            return "Playing".equalsIgnoreCase(playbackStatus);
+        }
+
         public boolean hasTimeline() {
             return durMs > 0;
         }
 
         public long positionMs() {
-            long p = posMs + (playing ? (System.nanoTime() - nanos) / 1_000_000L : 0L);
+            long p = posMs + (playing() ? (System.nanoTime() - nanos) / 1_000_000L : 0L);
             return durMs > 0 ? Math.max(0L, Math.min(durMs, p)) : Math.max(0L, p);
         }
 
@@ -47,6 +55,7 @@ public final class NowPlaying {
     }
 
     private static volatile Snapshot current;
+    private static volatile PlayerStatus playerStatus = PlayerStatus.CHECKING;
     private static volatile long lastAsk;
     private static volatile long lastSuccess;
     private static volatile String artworkUrl = "";
@@ -63,6 +72,22 @@ public final class NowPlaying {
         lastAsk = System.currentTimeMillis();
         ensurePollThread();
         return current;
+    }
+
+    /** A clear explanation shown in the HUD when no valid track metadata is available. */
+    public static String statusText() {
+        return switch (playerStatus) {
+            case CHECKING -> "Checking Spotify...";
+            case NOT_RUNNING -> "Open Spotify to show a track";
+            case NOTHING_PLAYING -> "Nothing is playing";
+            case PERMISSION_REQUIRED -> mac()
+                    ? "Allow Spotify in macOS System Settings"
+                    : "Spotify permission is required";
+            case UNAVAILABLE -> "Spotify data is unavailable";
+            case PLAYING -> "Playing";
+            case PAUSED -> "Paused";
+            case STOPPED -> "Stopped";
+        };
     }
 
     /** Album art bytes for the current track, if the local player exposes a cover URL. */
@@ -108,7 +133,11 @@ public final class NowPlaying {
                         poll();
                         nextPoll = System.currentTimeMillis() + (windows() ? 2500L : 1500L);
                     } else if (now - lastSuccess > STALE_AFTER_MS) {
-                        current = null;
+                        if (current != null) {
+                            current = null;
+                            playerStatus = PlayerStatus.UNAVAILABLE;
+                            updateArtwork("");
+                        }
                         nextPoll = now + 400L;
                     }
                     Thread.sleep(200L);
@@ -160,38 +189,52 @@ public final class NowPlaying {
 
     // ------------------------------------------------------------------ per-OS readers
 
-    /** Windows: use the Spotify system media session, with a title-only fallback. */
+    /** Windows: use the Spotify system media session, with a window-title fallback. */
     private static final String WINDOWS_SCRIPT = String.join("\n",
             "$ErrorActionPreference='SilentlyContinue'",
             "[Console]::OutputEncoding=[Text.Encoding]::UTF8",
+            "function Fallback{$spotify=Get-Process -Name Spotify -ErrorAction SilentlyContinue|select -First 1;if($spotify){if($spotify.MainWindowTitle){Write-Output ('T:'+$spotify.MainWindowTitle)}else{Write-Output 'N:'}}}",
+            "try{",
             "Add-Type -AssemblyName System.Runtime.WindowsRuntime",
             "$m=[System.WindowsRuntimeSystemExtensions].GetMethods()|?{$_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1'}|select -First 1",
             "function Aw($op,$t){$n=$m.MakeGenericMethod($t).Invoke($null,@($op));$n.Wait(-1)|Out-Null;$n.Result}",
             "[void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]",
             "[void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties,Windows.Media.Control,ContentType=WindowsRuntime]",
             "$mgr=Aw ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])",
-            "$s=$mgr.GetSessions()|?{$_.SourceAppUserModelId -like '*Spotify*'}|select -First 1",
+            "$sessions=@($mgr.GetSessions()|?{$_.SourceAppUserModelId -match 'Spotify' -and $_.GetPlaybackInfo().PlaybackStatus.ToString() -ne 'Closed'})",
+            "$s=$sessions|?{$_.GetPlaybackInfo().PlaybackStatus.ToString() -eq 'Playing'}|select -First 1",
+            "if(!$s){$s=$sessions|select -First 1}",
             "if($s){",
             "$p=Aw ($s.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])",
             "$t=$s.GetTimelineProperties()",
             "$st=$s.GetPlaybackInfo().PlaybackStatus.ToString()",
             "$pos=$t.Position.TotalMilliseconds",
             "if($st -eq 'Playing'){$pos+=([DateTimeOffset]::UtcNow-$t.LastUpdatedTime).TotalMilliseconds}",
+            "if($t.EndTime.TotalMilliseconds -gt 0){$pos=[Math]::Min($pos,$t.EndTime.TotalMilliseconds)}",
+            "$artist=([string]$p.Artist)-replace '[\\t\\r\\n]',' '",
+            "$title=([string]$p.Title)-replace '[\\t\\r\\n]',' '",
+            "$album=([string]$p.AlbumTitle)-replace '[\\t\\r\\n]',' '",
             "$cover=''",
-            "try{if($p.Thumbnail){[void][Windows.Storage.Streams.DataReader,Windows.Storage.Streams,ContentType=WindowsRuntime];$sha=[Security.Cryptography.SHA256]::Create();$key=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($p.Artist+$p.Title)))).Replace('-','');$sha.Dispose();$path=Join-Path $env:TEMP ('habibclient-spotify-'+$key+'.art');if(!(Test-Path $path)){$stream=Aw ($p.Thumbnail.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType]);$reader=New-Object Windows.Storage.Streams.DataReader($stream.GetInputStreamAt(0));$size=[uint32]$stream.Size;[void](Aw ($reader.LoadAsync($size)) ([uint32]));$bytes=New-Object byte[] $size;$reader.ReadBytes($bytes);[System.IO.File]::WriteAllBytes($path,$bytes);$reader.Dispose();$stream.Dispose()};$cover=([System.Uri]$path).AbsoluteUri}}catch{}",
-            "Write-Output ($p.Artist+\"`t\"+$p.Title+\"`t\"+$st+\"`t\"+[int64]$pos+\"`t\"+[int64]$t.EndTime.TotalMilliseconds+\"`t\"+$cover)",
+            "try{if($p.Thumbnail){[void][Windows.Storage.Streams.DataReader,Windows.Storage.Streams,ContentType=WindowsRuntime];$sha=[Security.Cryptography.SHA256]::Create();$key=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($artist+$title+$album)))).Replace('-','');$sha.Dispose();$path=Join-Path $env:TEMP ('habibclient-spotify-'+$key+'.art');if(!(Test-Path $path)){$stream=Aw ($p.Thumbnail.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType]);$reader=New-Object Windows.Storage.Streams.DataReader($stream.GetInputStreamAt(0));$size=[uint32]$stream.Size;[void](Aw ($reader.LoadAsync($size)) ([uint32]));$bytes=New-Object byte[] $size;$reader.ReadBytes($bytes);[System.IO.File]::WriteAllBytes($path,$bytes);$reader.Dispose();$stream.Dispose()};$cover=([System.Uri]$path).AbsoluteUri}}catch{}",
+            "Write-Output ($artist+\"`t\"+$title+\"`t\"+$album+\"`t\"+$st+\"`t\"+[int64]$pos+\"`t\"+[int64]$t.EndTime.TotalMilliseconds+\"`t\"+$cover)",
             "}else{",
-            "$w=Get-Process Spotify|?{$_.MainWindowTitle}|select -First 1 -ExpandProperty MainWindowTitle",
-            "if($w){Write-Output ('T:'+$w)}",
-            "}");
+            "Fallback",
+            "}}catch{Fallback}");
 
     private static void poll() throws IOException, InterruptedException {
         if (windows()) {
             String encoded = Base64.getEncoder().encodeToString(WINDOWS_SCRIPT.getBytes(StandardCharsets.UTF_16LE));
             String out = run(List.of("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden",
                     "-EncodedCommand", encoded)).trim();
-            if (out.startsWith("T:")) applyWindowTitle(out.substring(2).trim());
-            else applyTabbed(out, 1.0, 1.0);
+            if (out.startsWith("T:")) {
+                if (!applyWindowTitle(out.substring(2).trim())) clearTrack(PlayerStatus.NOT_RUNNING);
+            } else if (out.startsWith("N:")) {
+                clearTrack(PlayerStatus.NOTHING_PLAYING);
+            } else if (out.isBlank()) {
+                clearTrack(PlayerStatus.NOT_RUNNING);
+            } else if (!applyTabbed(out, 1.0, 1.0)) {
+                clearTrack(PlayerStatus.UNAVAILABLE);
+            }
         } else if (mac()) {
             // Use Spotify's Apple-event property codes directly so osascript does not depend on
             // resolving the app's scripting dictionary before the metadata request runs.
@@ -201,6 +244,7 @@ public final class NowPlaying {
                     "        set currentTrack to «property pTrk»",
                     "        set trackArtist to «property pArt» of currentTrack",
                     "        set trackTitle to «property pnam» of currentTrack",
+                    "        set trackAlbum to «property pAlb» of currentTrack",
                     "        set playbackState to «property pPlS» as string",
                     "        set playbackPosition to «property pPos» as string",
                     "        set trackDuration to «property pDur» of currentTrack as string",
@@ -209,22 +253,27 @@ public final class NowPlaying {
                     "            set coverURL to «property aUrl» of currentTrack as text",
                     "        end try",
                     "        set tabChar to ASCII character 9",
-                    "        trackArtist & tabChar & trackTitle & tabChar & playbackState & tabChar & playbackPosition & tabChar & trackDuration & tabChar & coverURL",
+                    "        trackArtist & tabChar & trackTitle & tabChar & trackAlbum & tabChar & playbackState & tabChar & playbackPosition & tabChar & trackDuration & tabChar & coverURL",
                     "    end tell",
                     "else",
                     "    \"\"",
                     "end if");
             String out = run(List.of("osascript", "-e", script)).trim();
-            if (out.contains("-1743") || out.toLowerCase(Locale.ROOT).contains("not authorized")) {
-                accept(new Snapshot("Allow Spotify access", "Permission needed", false, 0, 0,
-                        System.nanoTime(), ""));
-            } else {
-                applyTabbed(out, 1000.0, 1000.0); // Spotify reports both values in seconds
+            String error = out.toLowerCase(Locale.ROOT);
+            // Spotify's scripting dictionary reports both position and duration in seconds.
+            if (out.contains("-1743") || error.contains("not authorized") || error.contains("not permitted to send apple events")) {
+                clearTrack(PlayerStatus.PERMISSION_REQUIRED);
+            } else if (out.isBlank()) {
+                clearTrack(PlayerStatus.NOT_RUNNING);
+            } else if (!applyTabbed(out, 1000.0, 1000.0)) {
+                clearTrack(PlayerStatus.UNAVAILABLE);
             }
         } else {
             String out = run(List.of("playerctl", "-p", "spotify", "metadata", "--format",
-                    "{{artist}}\t{{title}}\t{{status}}\t{{position}}\t{{mpris:length}}\t{{mpris:artUrl}}"));
-            applyTabbed(out.trim(), 0.001, 0.001); // both timeline values are in microseconds
+                    "{{artist}}\t{{title}}\t{{album}}\t{{status}}\t{{position}}\t{{mpris:length}}\t{{mpris:artUrl}}"));
+            out = out.trim();
+            if (out.isBlank()) clearTrack(PlayerStatus.NOT_RUNNING);
+            else if (!applyTabbed(out, 0.001, 0.001)) clearTrack(PlayerStatus.UNAVAILABLE);
         }
     }
 
@@ -264,36 +313,71 @@ public final class NowPlaying {
     }
 
     /** Fallback (no timeline): the window title is "Artist - Song" while playing. */
-    static void applyWindowTitle(String title) {
-        if (title.isEmpty()) return;
+    static boolean applyWindowTitle(String title) {
+        if (title.isEmpty()) return false;
         if (title.equals("Advertisement")) {
-            accept(new Snapshot("Spotify", "Advertisement", true, 0, 0, System.nanoTime(), ""));
+            accept(new Snapshot("Spotify", "Advertisement", "", "Playing", 0, 0, System.nanoTime(), ""));
         } else if (title.toLowerCase(Locale.ROOT).startsWith("spotify") && !title.contains(" - ")) {
-            accept(new Snapshot("Spotify", "Paused", false, 0, 0, System.nanoTime(), ""));
+            clearTrack(PlayerStatus.NOTHING_PLAYING);
         } else {
-            int dash = title.indexOf(" - ");
-            String artist = dash > 0 ? title.substring(0, dash).trim() : "";
-            String song = dash > 0 ? title.substring(dash + 3).trim() : title;
-            accept(new Snapshot(clip(artist), clip(song), true, 0, 0, System.nanoTime(), ""));
+            String track = title.replaceFirst("(?i)^spotify(?: premium)?\\s*[-–—:]\\s*", "").trim();
+            int dash = track.indexOf(" - ");
+            if (dash < 0) dash = track.indexOf(" – ");
+            if (dash < 0) dash = track.indexOf(" — ");
+            String artist = dash > 0 ? track.substring(0, dash).trim() : "";
+            String song = dash > 0 ? track.substring(dash + 3).trim() : track;
+            accept(new Snapshot(clip(artist), clip(song), "", "Playing", 0, 0, System.nanoTime(), ""));
         }
+        return true;
     }
 
-    /** artist TAB title TAB state [TAB position TAB length TAB artwork URL]. */
-    static void applyTabbed(String out, double posToMs, double durToMs) {
+    /** artist TAB title TAB album TAB state [TAB position TAB length TAB artwork URL]. */
+    static boolean applyTabbed(String out, double posToMs, double durToMs) {
         String[] parts = out.split("\t", -1);
-        if (parts.length < 3 || (parts[0].trim().isEmpty() && parts[1].trim().isEmpty())) return;
-        boolean isPlaying = parts[2].trim().equalsIgnoreCase("playing");
-        long pos = parts.length > 3 ? toMs(parts[3], posToMs) : 0L;
-        long dur = parts.length > 4 ? toMs(parts[4], durToMs) : 0L;
-        String art = parts.length > 5 ? parts[5].trim() : "";
-        accept(new Snapshot(clip(parts[0].trim()), clip(parts[1].trim()), isPlaying, pos, dur,
-                System.nanoTime(), art));
+        if (parts.length < 4) return false;
+        String artist = cleanField(parts[0]);
+        String title = cleanField(parts[1]);
+        if (artist.isEmpty() && title.isEmpty()) {
+            clearTrack(PlayerStatus.NOTHING_PLAYING);
+            return true;
+        }
+        String album = cleanField(parts[2]);
+        String state = normalizePlaybackState(cleanField(parts[3]));
+        long pos = parts.length > 4 ? toMs(parts[4], posToMs) : 0L;
+        long dur = parts.length > 5 ? toMs(parts[5], durToMs) : 0L;
+        String art = parts.length > 6 ? cleanField(parts[6]) : "";
+        accept(new Snapshot(clip(artist), clip(title), clip(album), state, pos, dur, System.nanoTime(), art));
+        return true;
+    }
+
+    private static String normalizePlaybackState(String state) {
+        if (state.equalsIgnoreCase("playing") || state.equals("kPSP")) return "Playing";
+        if (state.equalsIgnoreCase("paused") || state.equals("kPSp")) return "Paused";
+        if (state.equalsIgnoreCase("stopped") || state.equals("kPSS")) return "Stopped";
+        return "Unknown";
     }
 
     private static void accept(Snapshot snapshot) {
         current = snapshot;
+        playerStatus = switch (snapshot.playbackStatus()) {
+            case "Playing" -> PlayerStatus.PLAYING;
+            case "Paused" -> PlayerStatus.PAUSED;
+            case "Stopped" -> PlayerStatus.STOPPED;
+            default -> PlayerStatus.UNAVAILABLE;
+        };
         lastSuccess = System.currentTimeMillis();
         updateArtwork(snapshot.artworkUrl());
+    }
+
+    private static void clearTrack(PlayerStatus status) {
+        current = null;
+        playerStatus = status;
+        lastSuccess = System.currentTimeMillis();
+        updateArtwork("");
+    }
+
+    private static String cleanField(String field) {
+        return field.replace('\r', ' ').replace('\n', ' ').trim();
     }
 
     private static synchronized void updateArtwork(String url) {
