@@ -8,22 +8,31 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.Items;
 import net.minecraft.world.World;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Local-only feedback and particle reduction for respawn-anchor interactions. */
+/** Client-side anchor feedback and replaceable ghost-anchor prediction. */
 public final class AnchorOptimizer {
     private static final long PARTICLE_WINDOW_NANOS = 2_000_000_000L;
     private static final double PARTICLE_RADIUS_SQUARED = 8.0 * 8.0;
     private static final int MAX_ZONES = 32;
     private static final List<Zone> ZONES = new ArrayList<>();
+    private static final List<PendingFake> PENDING_FAKES = new ArrayList<>();
 
     private record Zone(Object world, double x, double y, double z, long expiresAt) {}
+    private record PendingFake(Object world, int x, int y, int z) {}
 
     private AnchorOptimizer() {}
 
-    /** Records an anchor interaction for its smooth hand swing and nearby blast particle filtering. */
+    /** Applies ghost anchors after vanilla has handled the click and sent its interaction. */
+    public static void init() {
+        ClientTickEvents.END_CLIENT_TICK.register(AnchorOptimizer::applyPendingFakes);
+    }
+
+    /** Records anchor feedback, nearby blast filtering, and eligible ghost-anchor replacements. */
     public static boolean markUse(MinecraftClient mc) {
         if (!BetaAccess.isAuthorized() || !HabibConfig.anchorOptimizer || mc.world == null
                 || !(mc.crosshairTarget instanceof BlockHitResult hit)) {
@@ -41,6 +50,14 @@ public final class AnchorOptimizer {
             return true;
         }
 
+        // In multiplayer, replace an exploding anchor locally after the click has been
+        // processed. Short grass is a clear, replaceable placeholder; the server's next
+        // block update replaces it with the authoritative state.
+        if (mc.player != null && !mc.player.isSneaking()
+                && mc.getNetworkHandler() != null && !mc.isInSingleplayer()) {
+            PENDING_FAKES.add(new PendingFake(mc.world, pos.getX(), pos.getY(), pos.getZ()));
+        }
+
         double x = pos.getX() + 0.5;
         double y = pos.getY() + 0.5;
         double z = pos.getZ() + 0.5;
@@ -49,6 +66,20 @@ public final class AnchorOptimizer {
         if (ZONES.size() >= MAX_ZONES) ZONES.removeFirst();
         ZONES.add(new Zone(mc.world, x, y, z, now + PARTICLE_WINDOW_NANOS));
         return true;
+    }
+
+    private static void applyPendingFakes(MinecraftClient mc) {
+        if (PENDING_FAKES.isEmpty()) return;
+        if (BetaAccess.isAuthorized() && HabibConfig.anchorOptimizer && mc.world != null) {
+            for (PendingFake pending : PENDING_FAKES) {
+                if (pending.world != mc.world) continue;
+                BlockPos pos = new BlockPos(pending.x, pending.y, pending.z);
+                if (mc.world.getBlockState(pos).getBlock() == Blocks.RESPAWN_ANCHOR) {
+                    mc.world.setBlockState(pos, Blocks.SHORT_GRASS.getDefaultState(), 3);
+                }
+            }
+        }
+        PENDING_FAKES.clear();
     }
 
     /** True when an explosion particle belongs to a recently used respawn anchor. */

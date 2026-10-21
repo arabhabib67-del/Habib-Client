@@ -6,6 +6,7 @@ import dev.habib.client.gui.BetaAccessScreen;
 import dev.habib.client.gui.MenuScreen;
 import dev.habib.client.hud.HudManager;
 import dev.habib.client.update.Updater;
+import dev.habib.client.util.AnchorOptimizer;
 import dev.habib.client.util.CrystalOptimizer;
 import dev.habib.client.util.Effects;
 import dev.habib.client.util.ConsumableOptimizer;
@@ -48,6 +49,7 @@ public class HabibClient implements ClientModInitializer {
 
         HudManager.init();
         Updater.init();
+        AnchorOptimizer.init();
         CrystalOptimizer.init();
         Effects.init();
         PearlOptimizer.init();

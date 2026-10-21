@@ -45,7 +45,7 @@ public final class HabibConfig {
     public static boolean pearlOptimizer = false;
     /** Hides eating, drinking and splash potion particles (visual only). */
     public static boolean consumableOptimizer = false;
-    /** Smooths local respawn-anchor use and hides the nearby blast particles. */
+    /** Adds a replaceable client-side anchor placeholder and reduces nearby blast particles. */
     public static boolean anchorOptimizer = false;
 
     /** Screen alerts (all off by default). */

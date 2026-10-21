@@ -929,7 +929,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         optimizeRow(ctx, mx, my, oy + 122, "No hit particles", "Hides crit, enchant-hit and damage particles.", hitParticleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 154, "Ender pearl optimizer", "Hides pearl trail and landing particles. Pearls work as normal.", pearlToggle, ca);
         optimizeRow(ctx, mx, my, oy + 186, "Consumable optimizer", "Hides eating, drinking and splash potion particles.", consumableToggle, ca);
-        optimizeRow(ctx, mx, my, oy + 218, "Anchor optimizer", "Smooths anchor use and reduces nearby blast-particle lag.", anchorToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 218, "Anchor optimizer", "Shows a replaceable ghost after an explosion and reduces blast particles.", anchorToggle, ca);
     }
 
     private float lowHealthToggle;

@@ -1,6 +1,11 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.4 - Hero-style anchor placement optimizer
+- In multiplayer, a charged respawn anchor that is used to explode now becomes a replaceable client-side placeholder immediately after the click, so another block can be placed in the same spot without waiting for the server's block update.
+- The server remains authoritative and corrects the placeholder with its next block update; no extra packets or automated actions are sent.
+- Applied to Minecraft 1.21.11 and 26.2.
+
 ## 1.15.3 - Respawn anchor optimizer
 - Added an optional smooth hand animation for anchor interactions and reduced nearby anchor blast particles to help avoid visual lag.
 - Added the optimizer toggle to the Optimizers tab for both Minecraft builds. Anchor behavior remains server-controlled.
