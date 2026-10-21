@@ -1,9 +1,7 @@
 package dev.habib.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.habib.client.beta.BetaAccess;
 import dev.habib.client.config.HabibConfig;
-import dev.habib.client.gui.BetaAccessScreen;
 import dev.habib.client.gui.MenuScreen;
 import dev.habib.client.hud.HudManager;
 import dev.habib.client.update.Updater;
@@ -56,13 +54,6 @@ public class HabibClient implements ClientModInitializer {
         ConsumableOptimizer.init();
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
-            if (!BetaAccess.isAuthorized()) {
-                stopZoom(mc);
-                if (!(mc.gui.screen() instanceof BetaAccessScreen)) {
-                    mc.gui.setScreen(new BetaAccessScreen(mc.gui.screen()));
-                }
-                return;
-            }
             while (openEditorKey.consumeClick()) {
                 if (mc.gui.screen() == null) {
                     mc.gui.setScreen(new MenuScreen());

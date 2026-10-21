@@ -1,6 +1,5 @@
 package dev.habib.client.util;
 
-import dev.habib.client.beta.BetaAccess;
 import dev.habib.client.config.HabibConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Items;
@@ -34,7 +33,7 @@ public final class AnchorOptimizer {
 
     /** Records anchor feedback, nearby blast filtering, and eligible ghost-anchor replacements. */
     public static boolean markUse(Minecraft mc) {
-        if (!BetaAccess.isAuthorized() || !HabibConfig.anchorOptimizer || mc.level == null
+        if (!HabibConfig.anchorOptimizer || mc.level == null
                 || !(mc.hitResult instanceof BlockHitResult hit)) {
             return false;
         }
@@ -70,7 +69,7 @@ public final class AnchorOptimizer {
 
     private static void applyPendingFakes(Minecraft mc) {
         if (PENDING_FAKES.isEmpty()) return;
-        if (BetaAccess.isAuthorized() && HabibConfig.anchorOptimizer && mc.level != null) {
+        if (HabibConfig.anchorOptimizer && mc.level != null) {
             for (PendingFake pending : PENDING_FAKES) {
                 if (pending.world != mc.level) continue;
                 BlockPos pos = new BlockPos(pending.x, pending.y, pending.z);

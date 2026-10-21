@@ -1,7 +1,6 @@
 package dev.habib.client.hud;
 
 import dev.habib.client.config.HabibConfig;
-import dev.habib.client.beta.BetaAccess;
 import dev.habib.client.gui.MenuScreen;
 import dev.habib.client.util.CpsTracker;
 import dev.habib.client.util.TotemPops;
@@ -55,7 +54,6 @@ public final class HudManager {
                 VanillaHudElements.CHAT,
                 net.minecraft.resources.Identifier.fromNamespaceAndPath("habibclient", "hud"),
                 (ctx, tickCounter) -> {
-            if (!BetaAccess.isAuthorized()) return;
             Minecraft mc = Minecraft.getInstance();
             CpsTracker.poll(mc);
             if (mc.player == null || mc.gui.hud.isHidden() || mc.gui.screen() instanceof MenuScreen) return;
@@ -65,7 +63,6 @@ public final class HudManager {
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
-            if (!BetaAccess.isAuthorized()) return;
             if (mc.player == null) return;
             Player p = mc.player;
 
@@ -85,7 +82,7 @@ public final class HudManager {
         });
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
-            if (BetaAccess.isAuthorized() && world.isClientSide() && entity instanceof LivingEntity) {
+            if (world.isClientSide() && entity instanceof LivingEntity) {
                 combo++;
                 hits++;
                 TotemPops.setTarget(entity);

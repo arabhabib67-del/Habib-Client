@@ -67,19 +67,6 @@ Press **Right Shift** in a world to open the Habib Client menu.
 
 Settings are saved to `config/habibclient.json`.
 
-## Beta access
-
-All beta testers use one shared password. Enter it once when the game opens; it unlocks the modules until the game closes.
-
-Before building or publishing beta jars, add a GitHub Actions repository secret named `BETA_ACCESS_PASSWORD`:
-
-1. Open the Habib Client repository on GitHub and choose **Settings**.
-2. Open **Secrets and variables** → **Actions**.
-3. Choose **New repository secret**, enter `BETA_ACCESS_PASSWORD` as the name, and enter the shared tester password as the value.
-4. Save it. For this 1.14.8 update, open the failed run under **Actions** and choose **Re-run jobs**. Later updates build automatically when you push a version change. Give testers the same password you saved as the secret.
-
-Do not put the password in a source file, Gradle properties file, commit, or issue. This is a simple beta gate: every tester shares the same password, so they can pass it on, and someone with a jar could attempt to guess it offline. Use a unique password that you do not use anywhere else.
-
 ## Auto-update
 The mod can update itself from your own GitHub repo, so you never have to send or copy a jar by hand again.
 

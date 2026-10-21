@@ -10,17 +10,8 @@ permissions:
 jobs:
   build-1-21-11:
     runs-on: ubuntu-latest
-    env:
-      BETA_ACCESS_PASSWORD: ${{ secrets.BETA_ACCESS_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check shared beta password
-        if: github.event_name != 'pull_request'
-        run: |
-          if [ -z "$BETA_ACCESS_PASSWORD" ]; then
-            echo "Add the BETA_ACCESS_PASSWORD repository secret before building beta jars."
-            exit 1
-          fi
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,17 +25,8 @@ jobs:
 
   build-26-2:
     runs-on: ubuntu-latest
-    env:
-      BETA_ACCESS_PASSWORD: ${{ secrets.BETA_ACCESS_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check shared beta password
-        if: github.event_name != 'pull_request'
-        run: |
-          if [ -z "$BETA_ACCESS_PASSWORD" ]; then
-            echo "Add the BETA_ACCESS_PASSWORD repository secret before building beta jars."
-            exit 1
-          fi
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

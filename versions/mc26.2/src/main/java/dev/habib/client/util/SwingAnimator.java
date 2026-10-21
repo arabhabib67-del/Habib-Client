@@ -3,7 +3,6 @@ package dev.habib.client.util;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.habib.client.config.HabibConfig;
-import dev.habib.client.beta.BetaAccess;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.tags.ItemTags;
@@ -68,7 +67,6 @@ public final class SwingAnimator {
 
     /** Called from the mixin. Returns true if the vanilla swing offset should be skipped. */
     public static boolean apply(PoseStack m, HumanoidArm arm, float p) {
-        if (!BetaAccess.isAuthorized()) return false;
         boolean anchorUse = HabibConfig.anchorOptimizer && lastClickWasUse && lastClickWasAnchorUse;
         int style = anchorUse ? 1 : HabibConfig.swingStyle;
         float intensity = anchorUse ? 1f : HabibConfig.swingIntensity;

@@ -6,33 +6,6 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
-def betaPassword = System.getenv("BETA_ACCESS_PASSWORD") ?: ""
-def betaPasswordIterations = 310_000
-def betaPasswordSalt = ""
-def betaPasswordHash = ""
-if (!betaPassword.isEmpty()) {
-    byte[] salt = new byte[16]
-    new java.security.SecureRandom().nextBytes(salt)
-    char[] passwordCharacters = betaPassword.toCharArray()
-    byte[] hash = null
-    try {
-        def passwordSpec = new javax.crypto.spec.PBEKeySpec(
-                passwordCharacters, salt, betaPasswordIterations, 256)
-        try {
-            hash = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-                    .generateSecret(passwordSpec).getEncoded()
-            betaPasswordSalt = java.util.Base64.getEncoder().encodeToString(salt)
-            betaPasswordHash = java.util.Base64.getEncoder().encodeToString(hash)
-        } finally {
-            passwordSpec.clearPassword()
-            java.util.Arrays.fill(passwordCharacters, (char) 0)
-        }
-    } finally {
-        if (hash != null) java.util.Arrays.fill(hash, (byte) 0)
-        java.util.Arrays.fill(salt, (byte) 0)
-    }
-}
-
 base {
     archivesName = project.archives_base_name
 }
@@ -56,20 +29,12 @@ processResources {
     inputs.property "minecraftVersion", project.minecraft_version
     inputs.property "minecraftRange", "~${project.minecraft_version}"
     inputs.property "javaVersion", "21"
-    inputs.property "betaPasswordSalt", betaPasswordSalt
-    inputs.property "betaPasswordHash", betaPasswordHash
-    inputs.property "betaPasswordIterations", betaPasswordIterations
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
                "updateRepo": (project.hasProperty('update_repo') ? project.property('update_repo') : ''),
                "minecraftVersion": project.minecraft_version,
                "minecraftRange": "~${project.minecraft_version}",
                "javaVersion": "21"
-    }
-    filesMatching("habib-beta.properties") {
-        expand "betaPasswordSalt": betaPasswordSalt,
-               "betaPasswordHash": betaPasswordHash,
-               "betaPasswordIterations": betaPasswordIterations
     }
 }
 

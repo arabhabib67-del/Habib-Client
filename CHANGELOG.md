@@ -1,6 +1,10 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.8 - Password-free startup
+- Removed the beta password screen and gating so modules work as soon as the game starts.
+- Removed the GitHub Actions password secret requirement; both Minecraft jars now build and release without it.
+
 ## 1.15.7 - Spotify artwork and Fullbright
 - Fixed Spotify album covers being missing or mismatched when switching tracks while the image was loading.
 - Added a saved Fullbright toggle in the Effects tab for Minecraft 1.21.11 and 26.2; it brightens the world without changing the user's gamma setting or adding a potion effect.
