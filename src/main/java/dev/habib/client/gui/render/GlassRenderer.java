@@ -11,6 +11,18 @@ public final class GlassRenderer {
 
     /** Scanline rounded rectangle with analytically covered, one-pixel antialiased edges. */
     public static void rounded(DrawContext ctx, int x, int y, int w, int h, int radius, int color) {
+        // Small switches and knobs use half-unit geometry for a finer silhouette at every GUI scale.
+        if (radius > 0 && w <= 48 && h <= 28 && !HabibConfig.appearance.reducedTransparency) {
+            ctx.getMatrices().pushMatrix();
+            try {
+                ctx.getMatrices().translate((float) x, (float) y);
+                ctx.getMatrices().scale(0.5f, 0.5f);
+                roundedPixels(ctx, 0, 0, w * 2, h * 2, radius * 2, color);
+            } finally { ctx.getMatrices().popMatrix(); }
+        } else roundedPixels(ctx, x, y, w, h, radius, color);
+    }
+
+    private static void roundedPixels(DrawContext ctx, int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0 || (color >>> 24) == 0) return;
         int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
         if (r == 0) { ctx.fill(x, y, x + w, y + h, color); return; }
@@ -23,6 +35,15 @@ public final class GlassRenderer {
             line(ctx, x, y + row, w, inset, color, coverage);
             line(ctx, x, y + h - 1 - row, w, inset, color, coverage);
         }
+    }
+
+    /** Animated controls retain fractional coordinates until Minecraft applies GUI scaling. */
+    public static void rounded(DrawContext ctx, float x, float y, int w, int h, int radius, int color) {
+        ctx.getMatrices().pushMatrix();
+        try {
+            ctx.getMatrices().translate(x, y);
+            rounded(ctx, 0, 0, w, h, radius, color);
+        } finally { ctx.getMatrices().popMatrix(); }
     }
 
     private static void line(DrawContext ctx, int x, int y, int width, int inset, int color, int coverage) {
@@ -70,15 +91,15 @@ public final class GlassRenderer {
         if (!HabibConfig.appearance.reducedTransparency) {
             for (int spread = 8; spread >= 2; spread -= 2) {
                 rounded(ctx, x - spread, y + 3 - spread / 2, w + spread * 2, h + spread,
-                        16 + spread, ThemePalette.alpha(0x09000000, opacity));
+                        20 + spread, ThemePalette.alpha(0x06000000, opacity));
             }
         }
-        surface(ctx, x, y, w, h, 16, ThemePalette.alpha(p.edge, opacity), ThemePalette.alpha(p.panel, opacity));
+        surface(ctx, x, y, w, h, 20, ThemePalette.alpha(p.edge, opacity), ThemePalette.alpha(p.panel, opacity));
         // Gentle vertical sheen, explicitly separate from the real vanilla background blur.
         if (!HabibConfig.appearance.reducedTransparency) {
             for (int band = 0; band < 8; band++) {
                 int top = y + 3 + band * 4;
-                ctx.fill(x + 16, top, x + w - 16, top + 4, ThemePalette.alpha(0x0AFFFFFF, opacity * (1f - band / 8f)));
+                ctx.fill(x + 16, top, x + w - 16, top + 4, ThemePalette.alpha(0x07FFFFFF, opacity * (1f - band / 8f)));
             }
         }
     }
@@ -86,16 +107,16 @@ public final class GlassRenderer {
     public static void toggle(DrawContext ctx, int x, int y, float progress, float opacity) {
         ThemePalette p = ThemeManager.palette();
         rounded(ctx, x, y, 34, 18, 9, ThemePalette.alpha(ThemePalette.mix(p.track, p.accent, progress), opacity));
-        int knob = x + 2 + Math.round(Math.max(0f, Math.min(1f, progress)) * 16f);
+        float knob = x + 2f + Math.max(0f, Math.min(1f, progress)) * 16f;
         rounded(ctx, knob, y + 3, 14, 14, 7, ThemePalette.alpha(0x20000000, opacity));
         rounded(ctx, knob, y + 2, 14, 14, 7, ThemePalette.alpha(0xFFF9FBFF, opacity));
     }
 
     public static void slider(DrawContext ctx, int x, int y, int width, float value, float opacity) {
         ThemePalette p = ThemeManager.palette();
-        int end = x + Math.round(Math.max(0f, Math.min(1f, value)) * width);
+        float end = x + Math.max(0f, Math.min(1f, value)) * width;
         rounded(ctx, x, y + 5, width, 4, 2, ThemePalette.alpha(p.track, opacity * 0.65f));
-        rounded(ctx, x, y + 5, Math.max(2, end - x), 4, 2, ThemePalette.alpha(p.accent, opacity));
+        rounded(ctx, x, y + 5, Math.max(2, Math.round(end - x)), 4, 2, ThemePalette.alpha(p.accent, opacity));
         rounded(ctx, end - 5, y + 2, 10, 10, 5, ThemePalette.alpha(0xFFF7FAFF, opacity));
     }
 

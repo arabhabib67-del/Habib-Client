@@ -2,6 +2,8 @@
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
 ## 1.15.0 - Adaptive Liquid Glass interface
+- Refined the charcoal theme with neutral greys, an inset sidebar, softer cards and menu-local regular/semibold sans-serif typography.
+- Added font atlas smoothing, finer small-control curves and fractional animation positions; motion checks cover 30/60/144 FPS.
 - Added Auto, Light and Dark appearances with asynchronous system-theme detection and live updates.
 - Added persistent transparency, genuine vanilla blur and strength, reduced effects, animations and accent preferences, independent of gameplay profiles.
 - Restyled the menu and beta access panel with shared palettes, antialiased rounded glass, soft shadows, consistent switches, responsive scaling and module search.

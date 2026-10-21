@@ -4,7 +4,7 @@ A PvP-focused client-side Fabric mod for **Minecraft 1.21.11** and **26.2**. Eve
 
 ## Liquid Glass interface
 
-Open the menu with **Right Shift**. The existing categories and module controls now use one adaptive glass layout, with smooth switches, scrolling, rounded search fields and an Appearance page.
+Open the menu with **Right Shift**. The existing categories and module controls now use one adaptive glass layout, with smooth switches, scrolling, rounded search fields and an Appearance page. The charcoal theme uses neutral greys, inset navigation and softer control edges, with regular and semibold sans-serif text throughout the menus.
 
 - **Auto** (default) follows Windows' application theme, with best-effort macOS and GTK/GNOME detection. A daemon checks every five seconds without blocking rendering. Unsupported desktops use dark glass; Light and Dark always override detection.
 - **Glass Transparency** adjusts panel opacity. A higher value makes the panels less transparent.
@@ -16,7 +16,7 @@ Open the menu with **Right Shift**. The existing categories and module controls 
 
 Panels scale together when the Minecraft window is small. HUD positions remain in Minecraft's original screen coordinates. Main-menu previews use Minecraft's panorama; in-game menus leave the world visible behind the glass.
 
-See [UI verification and architecture](docs/liquid-glass-ui.md) for build commands and testing limits. Liquid Glass UI implementation by **Bloko**; the existing Habib Client authorship and MIT notice are preserved.
+See [UI verification and architecture](docs/liquid-glass-ui.md) for build commands and testing limits. Fonts derived from Inter are bundled under the SIL Open Font License; see [third-party notices](THIRD_PARTY_NOTICES.md). Liquid Glass UI implementation by **Bloko**; the existing Habib Client authorship and MIT notice are preserved.
 
 ## Modules
 | Module | What it shows |

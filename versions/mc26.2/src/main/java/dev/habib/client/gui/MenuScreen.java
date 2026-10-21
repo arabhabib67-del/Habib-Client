@@ -2,6 +2,7 @@ package dev.habib.client.gui;
 
 import dev.habib.client.gui.theme.*;
 import dev.habib.client.gui.render.GlassRenderer;
+import dev.habib.client.gui.render.UiTypography;
 import dev.habib.client.config.HabibConfig;
 import dev.habib.client.config.ProfileStore;
 import dev.habib.client.hud.HudManager;
@@ -73,8 +74,8 @@ public class MenuScreen extends Screen implements GlassScreen {
     private int HAIR;
     private static final int LAYOUT_SNAP_DISTANCE = 8;
 
-    private static final int HEADER_H = 52;
-    private static final int SIDE_W = 130;
+    private static final int HEADER_H = 60;
+    private static final int SIDE_W = 156;
     private static final int ROW_H = 42;
     private static final int ROW_STRIDE = 47;
     private static final int TAB_H = 24;
@@ -112,6 +113,7 @@ public class MenuScreen extends Screen implements GlassScreen {
 
     // animation state
     private float open;
+    private float openingOffset() { return (1f - open) * 10f; }
     private float tabFade = 1f;
     private float highlightY = -1f;
     private float scroll;
@@ -182,7 +184,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     private int ch;
 
     public MenuScreen() {
-        super(Component.literal("Habib Client"));
+        super(Minecraft.getInstance(), UiTypography.create(Minecraft.getInstance().font), Component.literal("Habib Client"));
         for (Category category : Category.values()) {
             categoryModules.put(category, HudManager.MODULES.stream().filter(m -> m.category == category).toList());
         }
@@ -304,21 +306,21 @@ public class MenuScreen extends Screen implements GlassScreen {
     }
 
     private void geometry() {
-        uiScale = Math.min(1f, Math.min((width - 12f) / 560f, (height - 12f) / 400f));
+        uiScale = Math.min(1f, Math.min((width - 12f) / 680f, (height - 12f) / 420f));
         uiScale = Math.max(0.1f, uiScale);
         int availableWidth = Math.round(width / uiScale);
         int availableHeight = Math.round(height / uiScale);
-        pw = Math.min(650, availableWidth - 24);
-        ph = Math.min(460, availableHeight - 24);
+        pw = Math.min(780, availableWidth - 36);
+        ph = Math.min(480, availableHeight - 28);
         px = (availableWidth - pw) / 2;
-        py = (availableHeight - ph) / 2 + Math.round((1f - open) * 7f);
+        py = (availableHeight - ph) / 2;
         cx = px + SIDE_W + 16;
         cy = py + HEADER_H + 12;
         cw = pw - SIDE_W - 34;
         ch = ph - HEADER_H - 24;
     }
 
-    private int tabY(int i) { return py + HEADER_H + 8 + 25 * i; }
+    private int tabY(int i) { return py + HEADER_H + 8 + 24 * i; }
 
     private int rowY(int j) {
         return cy + 36 + j * ROW_STRIDE - Math.round(scroll);
@@ -360,22 +362,23 @@ public class MenuScreen extends Screen implements GlassScreen {
         return Math.max(0f, modulesFor(tab.category).size() * ROW_STRIDE + 36 - ch);
     }
 
-    /** Spring hover state with a brief overshoot, keyed so each control animates independently. */
+    /** Analytic critically damped hover state, keyed so each control animates independently. */
     private float hoverSpring(int key, boolean over) {
-        if (!HabibConfig.appearance.animations) { lastHoverBounce = 0f; return over ? 1f : 0f; }
+        if (!HabibConfig.appearance.animations) {
+            float target = over ? 1f : 0f;
+            rowHover.put(key, target); rowHoverVelocity.put(key, 0f);
+            lastHoverBounce = 0f; return target;
+        }
         float value = rowHover.getOrDefault(key, 0f);
         float velocity = rowHoverVelocity.getOrDefault(key, 0f);
         float target = over ? 1f : 0f;
-        int steps = Math.max(1, Math.min(8, (int) Math.ceil(frameDt / 0.01f)));
-        float step = frameDt / steps;
-        for (int i = 0; i < steps; i++) {
-            velocity += ((target - value) * 330f - velocity * 24f) * step;
-            value += velocity * step;
-        }
-        if (Math.abs(value - target) < 0.002f && Math.abs(velocity) < 0.025f) {
-            value = target;
-            velocity = 0f;
-        }
+        float omega = 22f;
+        float displacement = value - target;
+        float intermediate = (velocity + omega * displacement) * frameDt;
+        float decay = (float) Math.exp(-omega * frameDt);
+        value = target + (displacement + intermediate) * decay;
+        velocity = (velocity - omega * intermediate) * decay;
+        if (Math.abs(value - target) < 0.001f && Math.abs(velocity) < 0.01f) { value = target; velocity = 0f; }
         rowHover.put(key, value);
         rowHoverVelocity.put(key, velocity);
         lastHoverBounce = over ? Math.max(0f, value - 1f) : Math.max(0f, -value);
@@ -483,7 +486,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         super.extractRenderState(ctx, mx, my, delta);
         long now = System.nanoTime();
-        float dt = Math.min(0.05f, (now - lastNanos) / 1_000_000_000f);
+        float dt = Math.min(0.1f, (now - lastNanos) / 1_000_000_000f);
         lastNanos = now;
 
         updatePalette(dt);
@@ -520,7 +523,8 @@ public class MenuScreen extends Screen implements GlassScreen {
             ctx.pose().pushMatrix();
             try {
                 ctx.pose().scale(uiScale, uiScale);
-                renderPanel(ctx, Math.round(mx / uiScale), Math.round(my / uiScale), dt, now);
+                ctx.pose().translate(0f, openingOffset());
+                renderPanel(ctx, Math.round(mx / uiScale), Math.round(my / uiScale - openingOffset()), dt, now);
             } finally { ctx.pose().popMatrix(); }
         }
     }
@@ -532,12 +536,13 @@ public class MenuScreen extends Screen implements GlassScreen {
         hudXField.visible = hudYField.visible = tab == Tab.LAYOUT;
         float a = open;
         GlassRenderer.panel(ctx, px, py, pw, ph, a);
-        rrect(ctx, px + 5, py + HEADER_H, SIDE_W - 2, ph - HEADER_H - 6, 11, alpha(SIDE_BG, a));
-        ctx.fill(px + SIDE_W + 8, cy, px + SIDE_W + 9, py + ph - 14, alpha(HAIR, a));
-        GlassRenderer.surface(ctx, px + 15, py + 13, 26, 26, 8, alpha(HAIR, a), alpha(ACCENT_DIM, a));
-        txtCentered(ctx, "H", px + 28, py + 22, alpha(ThemeManager.palette().accentText, a));
-        sectionTitle(ctx, "Habib Client", px + 50, py + 15, a);
-        txt(ctx, "Premium. Performance. Control.", px + 50, py + 29, alpha(MUTED, a));
+        GlassRenderer.surface(ctx, px + 8, py + 8, SIDE_W - 4, ph - 16, 13, alpha(HAIR, a * 0.45f), alpha(SIDE_BG, a));
+        txt(ctx, "Modules", px + 23, py + 24, alpha(MUTED, a));
+
+        GlassRenderer.surface(ctx, cx, py + 16, 26, 26, 8, alpha(HAIR, a), alpha(ROW_HOVER, a));
+        txtCentered(ctx, "H", cx + 13, py + 25, alpha(TEXT, a));
+        sectionTitle(ctx, "Habib Client", cx + 36, py + 16, a);
+        txt(ctx, "Premium. Performance. Control.", cx + 36, py + 33, alpha(MUTED, a));
 
         int searchX = px + pw - 212;
         glassBorder(ctx, searchX, py + 15, 170, 23, 11, alpha(searchField.isFocused() ? ACCENT : HAIR, a), alpha(ROW, a));
@@ -556,7 +561,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
         highlightY = approach(highlightY, targetY, dt, 18f);
-        rrect(ctx, px + 11, Math.round(highlightY), SIDE_W - 13, TAB_H, 7, alpha(ThemeManager.palette().selected, a));
+        GlassRenderer.rounded(ctx, (float) px + 11, highlightY, SIDE_W - 13, TAB_H, 7, alpha(ThemeManager.palette().selected, a));
         for (int i = 0; i < TABS.length; i++) {
             boolean active = TABS[i] == tab;
             boolean over = inside(mx, my, px + 11, tabY(i), SIDE_W - 13, TAB_H);
@@ -629,7 +634,7 @@ public class MenuScreen extends Screen implements GlassScreen {
 
             int rowFill = mix(ROW, ROW_HOVER, 0.18f + hover[idx] * 0.58f);
             drawHoverBounce(ctx, cx, ry, cw, ROW_H, 9, bounce, ca);
-            glassBorder(ctx, cx, ry, cw, ROW_H, 9, alpha(0x30FFFFFF, ca * (0.55f + hover[idx] * 0.45f)), alpha(rowFill, ca));
+            rrect(ctx, cx, ry, cw, ROW_H, 10, alpha(rowFill, ca));
             rrect(ctx, cx + 9, ry + 8, 3, ROW_H - 16, 2,
                     alpha(mix(OFF, m.color | 0xFF000000, toggle[idx]), ca));
             txt(ctx, font.plainSubstrByWidth(m.label, cw - 232), cx + 19, ry + 10, alpha(mix(MUTED, TEXT, toggle[idx]), ca));
@@ -668,9 +673,14 @@ public class MenuScreen extends Screen implements GlassScreen {
         rrect(ctx, x, y + 5, 3, h - 10, 2, alpha(mix(0xFF2C2C32, onColor, t), a));
     }
 
-    /** Section heading: accent tick plus caps title. */
+    /** Semibold section heading, scaled independently from body text. */
     private void sectionTitle(GuiGraphicsExtractor ctx, String s, int x, int y, float a) {
-        ctx.text(font, Component.literal(s).withStyle(st -> st.withBold(true)), x, y, alpha(TEXT, a), false);
+        ctx.pose().pushMatrix();
+        try {
+            ctx.pose().translate((float) x, (float) y);
+            ctx.pose().scale(1.2f, 1.2f);
+            ctx.text(font, UiTypography.heading(s), 0, 0, alpha(TEXT, a), false);
+        } finally { ctx.pose().popMatrix(); }
     }
 
     private void smallButton(GuiGraphicsExtractor ctx, int mx, int my, int x, int y, String label, float a) {
@@ -704,7 +714,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 int start = right - 138;
                 rrect(ctx, start, top + 7, 138, 22, 11, alpha(OFF, a * 0.32f));
                 themeSegment = approach(themeSegment, settings.themeMode.ordinal(), dt, 18f);
-                rrect(ctx, start + Math.round(themeSegment * 46), top + 7, 46, 22, 11, alpha(ACCENT, a));
+                GlassRenderer.rounded(ctx, start + themeSegment * 46, top + 7, 46, 22, 11, alpha(ACCENT, a));
                 for (ThemeMode mode : ThemeMode.values()) txtCentered(ctx, mode.label, start + mode.ordinal() * 46 + 23, top + 14, alpha(mode == settings.themeMode ? ThemeManager.palette().accentText : MUTED, a));
             } else if (row == 1) {
                 opacityVisual = approach(opacityVisual, settings.opacity, dt, 22f);
@@ -795,7 +805,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         float targetX = cx + style * segW;
         if (segmentX < 0f) segmentX = targetX;
         segmentX = approach(segmentX, targetX, dt, 16f);
-        rrect(ctx, Math.round(segmentX) + 2, segY + 2, segW - 4, segH - 4, 5, alpha(ACCENT, ca * 0.9f));
+        GlassRenderer.rounded(ctx, segmentX + 2f, segY + 2, segW - 4, segH - 4, 5, alpha(ACCENT, ca * 0.9f));
         for (int i = 0; i < SwingAnimator.COUNT; i++) {
             boolean selected = i == style;
             txtCentered(ctx, SwingAnimator.NAMES[i], cx + i * segW + segW / 2, segY + 7,
@@ -1336,7 +1346,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         float targetX = cx + packView * third;
         if (packSegX < 0f) packSegX = targetX;
         packSegX = approach(packSegX, targetX, dt, 16f);
-        rrect(ctx, Math.round(packSegX) + 2, oy + 2, third - 4, 16, 5, alpha(ACCENT, ca * 0.9f));
+        GlassRenderer.rounded(ctx, packSegX + 2f, oy + 2, third - 4, 16, 5, alpha(ACCENT, ca * 0.9f));
         String[] names = {"Modrinth", "Installed", "Enabled"};
         for (int v = 0; v < 3; v++) {
             boolean over = inside(mx, my, cx + v * third, oy, third, 20);
@@ -1654,7 +1664,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         geometry();
         if (closing) return true;
         double mx = layoutMode ? click.x() : click.x() / uiScale;
-        double my = layoutMode ? click.y() : click.y() / uiScale;
+        double my = layoutMode ? click.y() : click.y() / uiScale - openingOffset();
         int button = click.button();
         if (layoutMode) return layoutClicked(mx, my, button);
         click = new MouseButtonEvent(mx, my, click.buttonInfo());
@@ -1807,7 +1817,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
         geometry();
         double mx = layoutMode ? click.x() : click.x() / uiScale;
-        double my = layoutMode ? click.y() : click.y() / uiScale;
+        double my = layoutMode ? click.y() : click.y() / uiScale - openingOffset();
         if (hudScaleDrag) { setHudScale(mx); return true; }
         if (appearanceDrag || blurDrag) { if (appearanceDrag) setOpacity(mx); else setBlur(mx); return true; }
         if (sbDrag) {
@@ -1852,7 +1862,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
         geometry();
         if (confirmReset || closing || armorDropdown >= 0) return true;
-        if (!layoutMode) { mx /= uiScale; my /= uiScale; }
+        if (!layoutMode) { mx /= uiScale; my = my / uiScale - openingOffset(); }
         if (!layoutMode && tab == Tab.LAYOUT && inside(mx, my, cx, cy + 64 - Math.round(scroll), 142, 220)) {
             hudListScroll = Math.max(0, Math.min(Math.max(0, HudManager.MODULES.size() * 24 + 8 - 220), hudListScroll - (float) vertical * 24));
             return true;
