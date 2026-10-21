@@ -8,6 +8,8 @@ Run ./gradlew build at the repository root with Java 21, and in versions/mc26.2 
 
 Isolated Minecraft 1.21.11 and 26.2 development launches exercised custom-font glyph loading, scaled search-field focus, search filtering, sidebar navigation, HUD position field focus and updates, slider dragging, content scrolling, armor dropdown selection and the reset modal. A duplicate blur request found during that launch was corrected by using Screen's background hook exactly once. Temporary preview instrumentation is not part of the distributable.
 
+After integrating the current main branch, both clients passed Camera/FOV control and sidebar-fit checks (including a small 26.2 window). Incorrect FOV accessor field types found during startup were corrected.
+
 The spring opening was also checked in both development clients: it peaked about 1% above the final size and settled, while search focus, sidebar clicks and slider dragging stayed aligned. Disabling animations snapped to the final position.
 
 Windows application-theme detection was exercised locally. macOS and Linux detection have not been tested on those operating systems. Shader-pack combinations, multiplayer interactions, ultrawide displays and comparative FPS profiling still need user testing. Both version-specific font adapters and their menu rendering were also exercised in these isolated development clients.
@@ -19,7 +21,7 @@ Windows application-theme detection was exercised locally. macOS and Linux detec
 - Exercise module switches, scale and colour, animation settings, packs, optimizers, effects, presets and profile sharing.
 - In HUD Editor, change coordinates, scale and armor dropdowns; open the full-screen editor and drag, resize and recolour a widget.
 - Toggle blur, reduced transparency and animations, and verify the preferences after restart and profile loading.
-- Merge the feature PR only after review. The existing main-branch workflow then builds and publishes 1.15.1 for both Minecraft versions; installed clients receive it through the existing updater after the release succeeds.
+- Merge the feature PR only after review. The existing main-branch workflow then builds and publishes 1.15.5 for both Minecraft versions; installed clients receive it through the existing updater after the release succeeds.
 
 ## Development screenshots
 
@@ -37,6 +39,6 @@ The menu header uses a geometric cartoon bomb mark. The screenshot below shows i
 
 ![Menu logo](screenshots/cartoon-bomb-logo.png)
 
-The latest rounded controls are shown below, captured in the 1.21.11 development client after the spring settles.
+The rounded controls are shown below, captured in the 1.21.11 development client after the spring settles.
 
 ![Rounded menu](screenshots/smooth-pill-menu.png)

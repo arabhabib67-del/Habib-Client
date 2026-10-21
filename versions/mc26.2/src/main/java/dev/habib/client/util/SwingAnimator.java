@@ -34,9 +34,11 @@ public final class SwingAnimator {
 
     /** True if the last click was a right-click use (set by MinecraftClientMixin). */
     private static volatile boolean lastClickWasUse = false;
+    private static volatile boolean lastClickWasAnchorUse = false;
 
-    public static void markUse() {
+    public static void markUse(boolean anchorUse) {
         lastClickWasUse = true;
+        lastClickWasAnchorUse = anchorUse;
     }
 
     /** True if the last left-click attack had an entity (a hitbox) under the crosshair. */
@@ -44,6 +46,7 @@ public final class SwingAnimator {
 
     public static void markAttack(boolean hitEntity) {
         lastClickWasUse = false;
+        lastClickWasAnchorUse = false;
         lastAttackHit = hitEntity;
     }
 
@@ -52,6 +55,7 @@ public final class SwingAnimator {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return false;
         ItemStack stack = arm == player.getMainArm() ? player.getMainHandItem() : player.getOffhandItem();
+        if (HabibConfig.anchorOptimizer && lastClickWasUse && lastClickWasAnchorUse) return true;
         if (stack.is(ItemTags.SWORDS)) return !HabibConfig.swingOnlyOnHit || lastAttackHit;
         return lastClickWasUse && stack.is(Items.ENDER_PEARL);
     }
@@ -65,7 +69,9 @@ public final class SwingAnimator {
     /** Called from the mixin. Returns true if the vanilla swing offset should be skipped. */
     public static boolean apply(PoseStack m, HumanoidArm arm, float p) {
         if (!BetaAccess.isAuthorized()) return false;
-        int style = HabibConfig.swingStyle;
+        boolean anchorUse = HabibConfig.anchorOptimizer && lastClickWasUse && lastClickWasAnchorUse;
+        int style = anchorUse ? 1 : HabibConfig.swingStyle;
+        float intensity = anchorUse ? 1f : HabibConfig.swingIntensity;
         if (style <= 0 || style >= COUNT || p <= 0f) return false;
         if (!animatedSwing(arm)) return false;
 
@@ -78,11 +84,11 @@ public final class SwingAnimator {
         m.translate(-i * l, -mv, -f);
 
         if (style == FLAT_STAB) {
-            flatStab(m, i, p, HabibConfig.swingIntensity);
+            flatStab(m, i, p, intensity);
             return true;
         }
 
-        float s = ease(p) * HabibConfig.swingIntensity;
+        float s = ease(p) * intensity;
         float[] st = STYLE[style];
         m.translate(0f, st[0] * s, st[1] * s);
         m.mulPose(Axis.XP.rotationDegrees(st[2] * s));

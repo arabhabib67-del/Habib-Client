@@ -3,6 +3,7 @@ package dev.habib.client.mixin;
 import dev.habib.client.config.HabibConfig;
 import dev.habib.client.beta.BetaAccess;
 import dev.habib.client.util.ConsumableOptimizer;
+import dev.habib.client.util.AnchorOptimizer;
 import dev.habib.client.util.PearlOptimizer;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
@@ -28,6 +29,9 @@ public class ParticleManagerMixin {
                 || (HabibConfig.noTotemParticles && type == ParticleTypes.TOTEM_OF_UNDYING)
                 || (HabibConfig.pearlOptimizer && type == ParticleTypes.PORTAL && PearlOptimizer.near(x, y, z))
                 || (HabibConfig.consumableOptimizer && ConsumableOptimizer.hides(type, x, y, z))
+                || (HabibConfig.anchorOptimizer
+                && (type == ParticleTypes.EXPLOSION || type == ParticleTypes.EXPLOSION_EMITTER)
+                && AnchorOptimizer.near(x, y, z))
                 || (HabibConfig.noHitParticles
                 && (type == ParticleTypes.CRIT || type == ParticleTypes.ENCHANTED_HIT
                 || type == ParticleTypes.DAMAGE_INDICATOR));

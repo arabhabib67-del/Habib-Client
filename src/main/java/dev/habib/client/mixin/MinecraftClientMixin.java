@@ -1,6 +1,7 @@
 package dev.habib.client.mixin;
 
 import dev.habib.client.util.SwingAnimator;
+import dev.habib.client.util.AnchorOptimizer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MinecraftClientMixin {
     @Inject(method = "doItemUse", at = @At("HEAD"))
     private void habibclient$markUse(CallbackInfo ci) {
-        SwingAnimator.markUse();
+        MinecraftClient mc = (MinecraftClient) (Object) this;
+        SwingAnimator.markUse(AnchorOptimizer.markUse(mc));
     }
 
     @Inject(method = "doAttack", at = @At("HEAD"))

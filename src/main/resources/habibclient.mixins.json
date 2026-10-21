@@ -9,7 +9,10 @@
     "ParticleManagerMixin",
     "MenuBlurMixin",
     "UiFontAccessor",
-    "UiFontTextureMixin"
+    "UiFontTextureMixin",
+    "FovUnlockMixin",
+    "SimpleOptionAccessor"
+
   ],
   "injectors": {
     "defaultRequire": 1

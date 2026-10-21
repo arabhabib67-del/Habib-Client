@@ -16,11 +16,18 @@ import java.util.Map;
 
 /** Saves/loads module positions, scale, colour and enabled state to config/habibclient.json. */
 public final class HabibConfig {
+    public static final int MIN_FOV = 30;
+    public static final int MAX_FOV = 170;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("habibclient.json");
 
     /** Hold-to-zoom FOV multiplier (smaller = more zoom). */
     public static float zoomFactor = 0.25f;
+
+    /** Per-perspective FOV values; -1 means initialize from the user's Minecraft FOV. */
+    public static int firstPersonFov = -1;
+    public static int thirdPersonFov = -1;
 
     /** First-person swing animation: index into SwingAnimator.NAMES (0 = vanilla). */
     public static int swingStyle = 1;
@@ -38,6 +45,8 @@ public final class HabibConfig {
     public static boolean pearlOptimizer = false;
     /** Hides eating, drinking and splash potion particles (visual only). */
     public static boolean consumableOptimizer = false;
+    /** Adds a replaceable client-side anchor placeholder and reduces nearby blast particles. */
+    public static boolean anchorOptimizer = false;
 
     /** Screen alerts (all off by default). */
     public static boolean lowHealthWarning = false;
@@ -72,6 +81,8 @@ public final class HabibConfig {
     private static class Data {
         AppearanceSettings appearance = new AppearanceSettings();
         float zoomFactor = 0.25f;
+        Integer firstPersonFov;
+        Integer thirdPersonFov;
         int swingStyle = 1;
         float swingIntensity = 1f;
         boolean swingOnlyOnHit = true;
@@ -81,6 +92,7 @@ public final class HabibConfig {
         boolean noHitParticles = false;
         boolean pearlOptimizer = false;
         boolean consumableOptimizer = false;
+        boolean anchorOptimizer = false;
         boolean lowHealthWarning = false;
         boolean popFlash = false;
         boolean popMessages = false;
@@ -114,6 +126,8 @@ public final class HabibConfig {
         Data data = new Data();
         data.appearance = appearance;
         data.zoomFactor = zoomFactor;
+        data.firstPersonFov = firstPersonFov;
+        data.thirdPersonFov = thirdPersonFov;
         data.swingStyle = swingStyle;
         data.swingIntensity = swingIntensity;
         data.hudBackground = hudBackground;
@@ -129,6 +143,7 @@ public final class HabibConfig {
         data.noHitParticles = noHitParticles;
         data.pearlOptimizer = pearlOptimizer;
         data.consumableOptimizer = consumableOptimizer;
+        data.anchorOptimizer = anchorOptimizer;
         data.lowHealthWarning = lowHealthWarning;
         data.popFlash = popFlash;
         data.popMessages = popMessages;
@@ -181,6 +196,8 @@ public final class HabibConfig {
     /** Applies a settings snapshot. Updater settings are only taken from the config file, never from a profile. */
     private static void apply(Data data, boolean updater) {
         zoomFactor = Math.max(0.05f, Math.min(1f, data.zoomFactor));
+        if (data.firstPersonFov != null) firstPersonFov = clampFov(data.firstPersonFov);
+        if (data.thirdPersonFov != null) thirdPersonFov = clampFov(data.thirdPersonFov);
         swingStyle = Math.max(0, Math.min(SwingAnimator.COUNT - 1, data.swingStyle));
         swingIntensity = Math.max(0.25f, Math.min(2f, data.swingIntensity));
         hudBackground = data.hudBackground;
@@ -200,6 +217,7 @@ public final class HabibConfig {
         noHitParticles = data.noHitParticles;
         pearlOptimizer = data.pearlOptimizer;
         consumableOptimizer = data.consumableOptimizer;
+        anchorOptimizer = data.anchorOptimizer;
         lowHealthWarning = data.lowHealthWarning;
         popFlash = data.popFlash;
         popMessages = data.popMessages;
@@ -213,6 +231,10 @@ public final class HabibConfig {
             m.scale = Math.max(0.5f, Math.min(3f, d.scale));
             m.color = d.color;
         }
+    }
+
+    private static int clampFov(int fov) {
+        return fov < MIN_FOV ? -1 : Math.max(MIN_FOV, Math.min(MAX_FOV, fov));
     }
 
     public static void save() {

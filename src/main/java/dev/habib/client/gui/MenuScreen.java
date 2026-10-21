@@ -49,7 +49,8 @@ public class MenuScreen extends Screen implements GlassScreen {
         PRESETS_TAB("Presets", null),
         LAYOUT("HUD Editor", null),
         PROFILES("Profiles", null),
-        APPEARANCE("Appearance", null);
+        APPEARANCE("Appearance", null),
+        CAMERA("Camera", null);
 
         final String label;
         final Category category;
@@ -327,7 +328,19 @@ public class MenuScreen extends Screen implements GlassScreen {
         ch = ph - HEADER_H - 24;
     }
 
-    private int tabY(int i) { return py + HEADER_H + 8 + 24 * i; }
+    private int tabAreaHeight() { return pillY() - 8 - (py + HEADER_H + 8); }
+
+    private int tabHeight() {
+        return Math.max(18, Math.min(TAB_H, tabAreaHeight() / TABS.length));
+    }
+
+    private int tabStride() {
+        return Math.max(tabHeight(), Math.min(TAB_H + 1,
+                (tabAreaHeight() - tabHeight()) / Math.max(1, TABS.length - 1)));
+    }
+
+    private int tabY(int i) { return py + HEADER_H + 8 + tabStride() * i; }
+
 
     private int rowY(int j) {
         return cy + 36 + j * ROW_STRIDE - Math.round(scroll);
@@ -358,10 +371,11 @@ public class MenuScreen extends Screen implements GlassScreen {
             int contentHeight = switch (tab) {
                 case APPEARANCE -> 352;
                 case ANIMATIONS -> 240;
-                case OPTIMIZE -> 220;
+                case OPTIMIZE -> 252;
                 case EFFECTS -> 165;
                 case PRESETS_TAB -> 200;
                 case LAYOUT -> 440;
+                case CAMERA -> 170;
                 default -> 0;
             };
             return Math.max(0f, contentHeight - ch);
@@ -572,14 +586,19 @@ public class MenuScreen extends Screen implements GlassScreen {
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
         highlightY = approach(highlightY, targetY, dt, 18f);
-        GlassRenderer.rounded(ctx, (float) px + 11, highlightY, SIDE_W - 13, TAB_H, 12, alpha(ThemeManager.palette().selected, a));
+        int tabHeight = tabHeight();
+        int tabTextOffset = (tabHeight - 9) / 2;
+        int tabIconOffset = (tabHeight - 10) / 2;
+        GlassRenderer.rounded(ctx, (float) px + 11, highlightY, SIDE_W - 13, tabHeight, tabHeight / 2, alpha(ThemeManager.palette().selected, a));
+
         for (int i = 0; i < TABS.length; i++) {
             boolean active = TABS[i] == tab;
-            boolean over = inside(mx, my, px + 11, tabY(i), SIDE_W - 13, TAB_H);
+            int rowY = tabY(i);
+            boolean over = inside(mx, my, px + 11, rowY, SIDE_W - 13, tabHeight);
             tabHover[i] = hoverSpring(2048 + i, over);
-            if (!active) rrect(ctx, px + 11, tabY(i), SIDE_W - 13, TAB_H, 7, alpha(ROW_HOVER, a * tabHover[i] * 0.55f));
-            GlassRenderer.icon(ctx, i, px + 19, tabY(i) + 7, alpha(active ? ACCENT : MUTED, a));
-            txt(ctx, TABS[i].label, px + 38, tabY(i) + 8, alpha(active ? TEXT : MUTED, a));
+            if (!active) rrect(ctx, px + 11, rowY, SIDE_W - 13, tabHeight, 7, alpha(ROW_HOVER, a * tabHover[i] * 0.55f));
+            GlassRenderer.icon(ctx, i, px + 19, rowY + tabIconOffset, alpha(active ? ACCENT : MUTED, a));
+            txt(ctx, TABS[i].label, px + 38, rowY + tabTextOffset, alpha(active ? TEXT : MUTED, a));
         }
         boolean updateOver = inside(mx, my, pillX(), pillY(), SIDE_W - 20, 20);
         rrect(ctx, pillX(), pillY(), SIDE_W - 20, 20, 7, alpha(updateOver ? ROW_HOVER : ROW, a));
@@ -599,6 +618,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case EFFECTS -> renderEffects(ctx, mx, my, dt, ca, oy);
                 case PRESETS_TAB -> renderPresets(ctx, mx, my, dt, ca, oy);
                 case LAYOUT -> renderLayoutTab(ctx, mx, my, dt, ca, oy);
+                case CAMERA -> renderCameraTab(ctx, mx, my, ca, oy);
                 case PROFILES -> renderProfiles(ctx, mx, my, ca, oy);
                 default -> renderModules(ctx, mx, my, dt, ca);
             }
@@ -918,6 +938,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     private float hitParticleToggle;
     private float pearlToggle;
     private float consumableToggle;
+    private float anchorToggle;
     private float totemParticleToggle;
 
     private void optimizeRow(DrawContext ctx, int mx, int my, int y, String title, String sub, float t, float ca) {
@@ -939,12 +960,14 @@ public class MenuScreen extends Screen implements GlassScreen {
         hitParticleToggle = approach(hitParticleToggle, HabibConfig.noHitParticles ? 1f : 0f, dt, 16f);
         pearlToggle = approach(pearlToggle, HabibConfig.pearlOptimizer ? 1f : 0f, dt, 16f);
         consumableToggle = approach(consumableToggle, HabibConfig.consumableOptimizer ? 1f : 0f, dt, 16f);
+        anchorToggle = approach(anchorToggle, HabibConfig.anchorOptimizer ? 1f : 0f, dt, 16f);
         optimizeRow(ctx, mx, my, oy + 26, "Crystal optimizer", "Crystals vanish the instant you hit them.", crystalToggle, ca);
         optimizeRow(ctx, mx, my, oy + 58, "No explosion particles", "Cuts the lag from crystal explosions.", particleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 90, "No totem particles", "Hides the totem pop burst. Pop counter still works.", totemParticleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 122, "No hit particles", "Hides crit, enchant-hit and damage particles.", hitParticleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 154, "Ender pearl optimizer", "Hides pearl trail and landing particles. Pearls work as normal.", pearlToggle, ca);
         optimizeRow(ctx, mx, my, oy + 186, "Consumable optimizer", "Hides eating, drinking and splash potion particles.", consumableToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 218, "Anchor optimizer", "Shows a replaceable ghost after an explosion and reduces blast particles.", anchorToggle, ca);
     }
 
     private float lowHealthToggle;
@@ -1262,6 +1285,9 @@ public class MenuScreen extends Screen implements GlassScreen {
             HabibConfig.save();
         } else if (inside(mx, my, cx, cy + 186, cw, 30)) {
             HabibConfig.consumableOptimizer = !HabibConfig.consumableOptimizer;
+            HabibConfig.save();
+        } else if (inside(mx, my, cx, cy + 218, cw, 30)) {
+            HabibConfig.anchorOptimizer = !HabibConfig.anchorOptimizer;
             HabibConfig.save();
         }
     }
@@ -1602,6 +1628,43 @@ public class MenuScreen extends Screen implements GlassScreen {
         optimizeRow(ctx, mx, my, oy + 406, "Widget backgrounds", "Draw a readable background behind HUD widgets.", bgToggle, ca);
     }
 
+    private void fovOptionRow(DrawContext ctx, int mx, int my, int y, String label,
+                              int value, int key, float ca) {
+        boolean over = inside(mx, my, cx, y, cw, 30);
+        hoverRowCard(ctx, cx, y, cw, 30, 9, over, ca);
+        txt(ctx, label, cx + 10, y + 10, alpha(TEXT, ca));
+        int minusX = cx + cw - 56;
+        int plusX = cx + cw - 30;
+        txtRight(ctx, value + "°", minusX - 7, y + 10, alpha(over ? ACCENT : TEXT, ca));
+
+        boolean minusOver = inside(mx, my, minusX, y + 5, 22, 20);
+        float minusMotion = hoverSpring(key, minusOver);
+        float minusBounce = lastHoverBounce;
+        drawHoverSurface(ctx, minusX, y + 5, 22, 20, 8, ROW, ROW_HOVER,
+                minusMotion, minusBounce, ca);
+        txtCentered(ctx, "−", minusX + 11, y + 11, alpha(minusOver ? ACCENT : TEXT, ca));
+
+        boolean plusOver = inside(mx, my, plusX, y + 5, 22, 20);
+        float plusMotion = hoverSpring(key + 1, plusOver);
+        float plusBounce = lastHoverBounce;
+        drawHoverSurface(ctx, plusX, y + 5, 22, 20, 8, ROW, ROW_HOVER,
+                plusMotion, plusBounce, ca);
+        txtCentered(ctx, "+", plusX + 11, y + 11, alpha(plusOver ? ACCENT : TEXT, ca));
+    }
+
+    private void renderCameraTab(DrawContext ctx, int mx, int my, float ca, int oy) {
+        sectionTitle(ctx, "Camera FOV", cx, oy, ca);
+        txt(ctx, "Choose a separate field of view for each camera view.", cx, oy + 15, alpha(MUTED, ca));
+        fovOptionRow(ctx, mx, my, oy + 43, "First person", HabibConfig.firstPersonFov, 4200, ca);
+        fovOptionRow(ctx, mx, my, oy + 81, "Third person", HabibConfig.thirdPersonFov, 4210, ca);
+
+        boolean firstPerson = MinecraftClient.getInstance().options.getPerspective().isFirstPerson();
+        int activeFov = firstPerson ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
+        txt(ctx, "Active view: " + (firstPerson ? "First person" : "Third person")
+                + "  ·  " + activeFov + "°", cx + 2, oy + 126, alpha(ACCENT, ca));
+        txt(ctx, "30°–170° · Hold C to zoom using the active view's FOV.", cx + 2, oy + 145, alpha(MUTED, ca));
+    }
+
     private void hudPositionField(DrawContext ctx, TextFieldWidget field, int x, int y, int w, int value, String axis, int mx, int my, float a) {
         glassBorder(ctx, x, y, w, 26, 7, alpha(field.isFocused() ? ACCENT : HAIR, a), alpha(ROW, a));
         txt(ctx, axis, x + 8, y + 9, alpha(MUTED, a));
@@ -1707,7 +1770,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         }
         setFocused(null);
         for (int i = 0; i < TABS.length; i++) {
-            if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, TAB_H)) {
+            if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, tabHeight())) {
                 if (!query.isEmpty()) searchField.setText("");
                 select(TABS[i]); return true;
             }
@@ -1722,6 +1785,7 @@ public class MenuScreen extends Screen implements GlassScreen {
             case EFFECTS -> effectsClicked(mx, contentY);
             case PRESETS_TAB -> presetsClicked(mx, contentY);
             case LAYOUT -> layoutTabClicked(mx, contentY);
+            case CAMERA -> cameraTabClicked(mx, contentY);
             case PROFILES -> profilesClicked(click, doubled, mx, my);
             default -> { if (my >= cy + 33) modulesClicked(mx, my); }
         }
@@ -1796,6 +1860,24 @@ public class MenuScreen extends Screen implements GlassScreen {
         else if (inside(mx, my, cx, cy + 372, cw, 30)) HabibConfig.armorShowHeld = !HabibConfig.armorShowHeld;
         else if (inside(mx, my, cx, cy + 406, cw, 30)) HabibConfig.hudBackground = !HabibConfig.hudBackground;
         HabibConfig.save();
+    }
+
+    private void cameraTabClicked(double mx, double my) {
+        if (adjustFov(mx, my, cy + 43, cx + cw - 56, cx + cw - 30, true)) return;
+        adjustFov(mx, my, cy + 81, cx + cw - 56, cx + cw - 30, false);
+    }
+
+    private boolean adjustFov(double mx, double my, int y, int minusX, int plusX, boolean firstPerson) {
+        if (!inside(mx, my, cx, y, cw, 30)) return false;
+        int value = firstPerson ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
+        if (inside(mx, my, minusX, y + 5, 22, 20)) value = Math.max(HabibConfig.MIN_FOV, value - 5);
+        else if (inside(mx, my, plusX, y + 5, 22, 20)) value = Math.min(HabibConfig.MAX_FOV, value + 5);
+        else return true;
+
+        if (firstPerson) HabibConfig.firstPersonFov = value;
+        else HabibConfig.thirdPersonFov = value;
+        HabibConfig.save();
+        return true;
     }
 
     private boolean layoutClicked(double mx, double my, int button) {
