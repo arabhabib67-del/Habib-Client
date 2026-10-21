@@ -3,3 +3,8 @@ build/
 run/
 .idea/
 *.iml
+
+.gradle-home/
+
+# Private local development instructions
+AGENTS.md

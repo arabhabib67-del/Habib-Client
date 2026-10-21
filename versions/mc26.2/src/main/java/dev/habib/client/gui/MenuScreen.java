@@ -1,5 +1,7 @@
 package dev.habib.client.gui;
 
+import dev.habib.client.gui.theme.*;
+import dev.habib.client.gui.render.GlassRenderer;
 import dev.habib.client.config.HabibConfig;
 import dev.habib.client.config.ProfileStore;
 import dev.habib.client.hud.HudManager;
@@ -33,7 +35,7 @@ import net.minecraft.server.packs.repository.PackRepository;
  * Habib Client menu: category sidebar, animated toggles, smooth scrolling, swing-animation settings
  * and a full-screen HUD layout editor. Everything is custom drawn so it can animate smoothly.
  */
-public class MenuScreen extends Screen {
+public class MenuScreen extends Screen implements GlassScreen {
     private enum Tab {
         INFO("Info", Category.INFO),
         COMBAT("Combat", Category.COMBAT),
@@ -44,8 +46,9 @@ public class MenuScreen extends Screen {
         OPTIMIZE("Optimize", null),
         EFFECTS("Effects", null),
         PRESETS_TAB("Presets", null),
-        LAYOUT("Layout", null),
-        PROFILES("Profiles", null);
+        LAYOUT("HUD Editor", null),
+        PROFILES("Profiles", null),
+        APPEARANCE("Appearance", null);
 
         final String label;
         final Category category;
@@ -58,25 +61,53 @@ public class MenuScreen extends Screen {
 
     private static final Tab[] TABS = Tab.values();
 
-    private static final int ACCENT = 0xFFFF6A2B;
-    private static final int ACCENT_DIM = 0xFFC9501C;
-    private static final int BG = 0xD91A1E27;
-    private static final int SIDE_BG = 0x8D11151D;
-    private static final int ROW = 0x4DFFFFFF;
-    private static final int ROW_HOVER = 0x75FFFFFF;
-    private static final int TEXT = 0xFFF2F4F8;
-    private static final int MUTED = 0xFFBBC6D3;
-    private static final int OFF = 0xFF596270;
-    private static final int HAIR = 0x25FFFFFF;
+    private int ACCENT;
+    private int ACCENT_DIM;
+    private int BG;
+    private int SIDE_BG;
+    private int ROW;
+    private int ROW_HOVER;
+    private int TEXT;
+    private int MUTED;
+    private int OFF;
+    private int HAIR;
     private static final int LAYOUT_SNAP_DISTANCE = 8;
 
-    private static final int HEADER_H = 38;
-    private static final int SIDE_W = 116;
-    private static final int ROW_H = 32;
-    private static final int ROW_STRIDE = 37;
-    private static final int TAB_H = 19;
+    private static final int HEADER_H = 52;
+    private static final int SIDE_W = 130;
+    private static final int ROW_H = 42;
+    private static final int ROW_STRIDE = 47;
+    private static final int TAB_H = 24;
 
+    private HudModule selectedHud;
+    private EditBox hudXField, hudYField;
+    private float hudListScroll, selectedScale = 1f, selectedToggle;
+    private boolean hudScaleDrag;
+    private int armorDropdown = -1;
+    private float dropdownExpansion;
+    private float uiScale = 1f;
+    private boolean closing;
+    private boolean confirmReset;
+    private boolean appearanceDrag, blurDrag;
+    private float modalOpacity;
+    private float themeSegment, opacityVisual = 0.8f;
+    private final float[] appearanceToggle = new float[8];
+    private static final int[] ACCENTS = {0xFF008AFF, 0xFF9258E8, 0xFFFF9426, 0xFFF4F5F7};
+    private EditBox searchField;
+    private String query = "";
+    private String cachedQuery = "";
+    private List<HudModule> filteredModules = List.of();
+    private final Map<Category, List<HudModule>> categoryModules = new java.util.EnumMap<>(Category.class);
     private Tab tab = Tab.INFO;
+
+    @Override
+    public boolean glassBlurAllowed() { return !layoutMode; }
+
+    private void updatePalette(float dt) {
+        ThemePalette p = ThemeManager.update(dt);
+        ACCENT = p.accent; ACCENT_DIM = p.accent; BG = p.panel; SIDE_BG = p.sidebar;
+        ROW = p.row; ROW_HOVER = p.hover; TEXT = p.text; MUTED = p.muted; OFF = p.track; HAIR = p.edge;
+    }
     private boolean layoutMode;
 
     // animation state
@@ -133,6 +164,7 @@ public class MenuScreen extends Screen {
     private float particleToggle;
     private String presetNote = "";
     private float onHitToggle = 1f;
+    private float intensityVisual = 1f;
     private static final int SLIDER_Y = 86;
     private final String[] viewQuery = {"", "", ""};
     private final Set<String> busy = new HashSet<>();
@@ -151,6 +183,9 @@ public class MenuScreen extends Screen {
 
     public MenuScreen() {
         super(Component.literal("Habib Client"));
+        for (Category category : Category.values()) {
+            categoryModules.put(category, HudManager.MODULES.stream().filter(m -> m.category == category).toList());
+        }
         int n = HudManager.MODULES.size();
         toggle = new float[n];
         hover = new float[n];
@@ -161,6 +196,24 @@ public class MenuScreen extends Screen {
 
     @Override
     protected void init() {
+        searchField = new EditBox(font, 0, 0, 150, 12, Component.literal("Search modules"));
+        searchField.setMaxLength(64);
+        searchField.setBordered(false);
+        searchField.setHint(Component.literal("Search modules..."));
+        searchField.setValue(query);
+        searchField.setResponder(value -> {
+            query = value.trim().toLowerCase(Locale.ROOT);
+            scroll = scrollTarget = 0f;
+            if (!query.isEmpty() && tab.category == null) { select(Tab.INFO); setFocused(searchField); }
+        });
+        addWidget(searchField);
+        hudXField = positionField("X"); hudYField = positionField("Y");
+        hudXField.setResponder(value -> applyPosition(value, true));
+        hudYField.setResponder(value -> applyPosition(value, false));
+        if (selectedHud == null && !HudManager.MODULES.isEmpty()) selectedHud = HudManager.MODULES.getFirst();
+        themeSegment = HabibConfig.appearance.themeMode.ordinal();
+        updatePalette(0.1f);
+
         String old = packField == null ? "" : packField.getValue();
         packField = new EditBox(font, 0, 0, 100, 18, Component.literal("Search"));
         packField.setMaxLength(48);
@@ -186,11 +239,24 @@ public class MenuScreen extends Screen {
         addWidget(profileField);
     }
 
+
+    private EditBox positionField(String axis) {
+        EditBox field = new EditBox(font, 0, 0, 60, 12, Component.literal(axis + " position"));
+        field.setMaxLength(5); field.setBordered(false);
+        addWidget(field); return field;
+    }
+
+    private void applyPosition(String value, boolean horizontal) {
+        if (selectedHud == null || value.isEmpty() || value.equals("-")) return;
+        try {
+            int coordinate = Math.max(-2000, Math.min(8000, Integer.parseInt(value)));
+            if (horizontal) selectedHud.x = coordinate; else selectedHud.y = coordinate;
+        } catch (NumberFormatException ignored) { }
+    }
+
     // ------------------------------------------------------------------ helpers
 
-    private static float approach(float cur, float target, float dt, float speed) {
-        return cur + (target - cur) * (1f - (float) Math.exp(-dt * speed));
-    }
+    private static float approach(float cur, float target, float dt, float speed) { return ThemeManager.animate(cur, target, dt, speed); }
 
     private static int alpha(int argb, float a) {
         float c = Math.max(0f, Math.min(1f, a));
@@ -213,22 +279,7 @@ public class MenuScreen extends Screen {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
-    private static void rrect(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int color) {
-        if (((color >>> 24) & 0xFF) == 0 || w <= 0 || h <= 0) return;
-        int rad = Math.max(0, Math.min(r, Math.min(w, h) / 2));
-        if (rad == 0) {
-            ctx.fill(x, y, x + w, y + h, color);
-            return;
-        }
-        ctx.fill(x + rad, y, x + w - rad, y + h, color);
-        ctx.fill(x, y + rad, x + w, y + h - rad, color);
-        for (int i = 0; i < rad; i++) {
-            double dy = rad - i - 0.5;
-            int inset = rad - (int) Math.round(Math.sqrt(rad * rad - dy * dy));
-            ctx.fill(x + inset, y + i, x + w - inset, y + i + 1, color);
-            ctx.fill(x + inset, y + h - 1 - i, x + w - inset, y + h - i, color);
-        }
-    }
+    private static void rrect(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int color) { GlassRenderer.rounded(ctx, x, y, w, h, r, color); }
 
     private static void border(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int color) {
         ctx.fill(x, y, x + w, y + 1, color);
@@ -237,14 +288,11 @@ public class MenuScreen extends Screen {
         ctx.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
-    private static void glassBorder(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int edge, int fill) {
-        rrect(ctx, x, y, w, h, r, edge);
-        if (w > 2 && h > 2) rrect(ctx, x + 1, y + 1, w - 2, h - 2, Math.max(0, r - 1), fill);
-    }
+    private static void glassBorder(GuiGraphicsExtractor ctx, int x, int y, int w, int h, int r, int edge, int fill) { GlassRenderer.surface(ctx, x, y, w, h, r, edge, fill); }
 
     private void txt(GuiGraphicsExtractor ctx, String s, int x, int y, int color) {
         if (((color >>> 24) & 0xFF) < 12) return;
-        ctx.text(font, s, x, y, color, true);
+        ctx.text(font, s, x, y, color, false);
     }
 
     private void txtCentered(GuiGraphicsExtractor ctx, String s, int centerX, int y, int color) {
@@ -256,36 +304,37 @@ public class MenuScreen extends Screen {
     }
 
     private void geometry() {
-        pw = Math.min(520, width - 24);
-        ph = Math.min(360, height - 24);
-        px = (width - pw) / 2;
-        py = (height - ph) / 2 + Math.round((1f - open) * 10f);
-        cx = px + SIDE_W + 14;
+        uiScale = Math.min(1f, Math.min((width - 12f) / 560f, (height - 12f) / 400f));
+        uiScale = Math.max(0.1f, uiScale);
+        int availableWidth = Math.round(width / uiScale);
+        int availableHeight = Math.round(height / uiScale);
+        pw = Math.min(650, availableWidth - 24);
+        ph = Math.min(460, availableHeight - 24);
+        px = (availableWidth - pw) / 2;
+        py = (availableHeight - ph) / 2 + Math.round((1f - open) * 7f);
+        cx = px + SIDE_W + 16;
         cy = py + HEADER_H + 12;
-        cw = pw - SIDE_W - 28;
+        cw = pw - SIDE_W - 34;
         ch = ph - HEADER_H - 24;
     }
 
-    private int tabY(int i) {
-        int base = py + HEADER_H + 8;
-        return i < 4 ? base + 10 + 22 * i : base + 112 + 22 * (i - 4);
-    }
+    private int tabY(int i) { return py + HEADER_H + 8 + 25 * i; }
 
     private int rowY(int j) {
-        return cy + 27 + j * ROW_STRIDE - Math.round(scroll);
+        return cy + 36 + j * ROW_STRIDE - Math.round(scroll);
     }
 
-    private List<HudModule> modulesFor(Category c) {
-        List<HudModule> list = new ArrayList<>();
-        for (HudModule m : HudManager.MODULES) {
-            if (m.category == c) list.add(m);
+    private List<HudModule> modulesFor(Category category) {
+        if (query.isEmpty()) return categoryModules.getOrDefault(category, List.of());
+        if (!query.equals(cachedQuery)) {
+            filteredModules = HudManager.MODULES.stream().filter(m -> m.label.toLowerCase(Locale.ROOT).contains(query)
+                    || m.id.toLowerCase(Locale.ROOT).contains(query)).toList();
+            cachedQuery = query;
         }
-        return list;
+        return filteredModules;
     }
 
-    private boolean scrolls() {
-        return tab.category != null || tab == Tab.PACKS || tab == Tab.PROFILES;
-    }
+    private boolean scrolls() { return true; }
 
     private float maxScroll() {
         if (tab == Tab.PROFILES) {
@@ -296,12 +345,24 @@ public class MenuScreen extends Screen {
             int stride = packsInstalledView ? INSTALLED_STRIDE : PACK_STRIDE;
             return Math.max(0f, rows * stride - listH());
         }
-        if (tab.category == null) return 0f;
-        return Math.max(0f, modulesFor(tab.category).size() * ROW_STRIDE + 27 - ch);
+        if (tab.category == null) {
+            int contentHeight = switch (tab) {
+                case APPEARANCE -> 352;
+                case ANIMATIONS -> 240;
+                case OPTIMIZE -> 220;
+                case EFFECTS -> 165;
+                case PRESETS_TAB -> 200;
+                case LAYOUT -> 440;
+                default -> 0;
+            };
+            return Math.max(0f, contentHeight - ch);
+        }
+        return Math.max(0f, modulesFor(tab.category).size() * ROW_STRIDE + 36 - ch);
     }
 
     /** Spring hover state with a brief overshoot, keyed so each control animates independently. */
     private float hoverSpring(int key, boolean over) {
+        if (!HabibConfig.appearance.animations) { lastHoverBounce = 0f; return over ? 1f : 0f; }
         float value = rowHover.getOrDefault(key, 0f);
         float velocity = rowHoverVelocity.getOrDefault(key, 0f);
         float target = over ? 1f : 0f;
@@ -365,7 +426,7 @@ public class MenuScreen extends Screen {
         for (int d = 0; d < 10; d++) {
             if (keyEdge(GLFW.GLFW_KEY_0 + d) && digit < 0) digit = d == 0 ? 9 : d - 1;
         }
-        if (layoutMode || (packField != null && packField.isFocused())
+        if (closing || confirmReset || armorDropdown >= 0 || hudXField.isFocused() || hudYField.isFocused() || searchField.isFocused() || layoutMode || (packField != null && packField.isFocused())
                 || (profileField != null && profileField.isFocused())) return;
 
         int cur = tab.ordinal();
@@ -398,7 +459,9 @@ public class MenuScreen extends Screen {
         if (t == tab) return;
         tabScroll[tab.ordinal()] = scrollTarget; // remember where you were in the tab you leave
         tab = t;
-        tabFade = 0f;
+        tabFade = HabibConfig.appearance.animations ? 0f : 1f;
+        appearanceDrag = blurDrag = false;
+        armorDropdown = -1;
         scrollTarget = tabScroll[t.ordinal()];
         scroll = scrollTarget;
         setFocused(null);
@@ -411,18 +474,26 @@ public class MenuScreen extends Screen {
     // ------------------------------------------------------------------ render
 
     @Override
+    public void extractBackground(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        if (minecraft.level == null) extractPanorama(ctx, delta);
+        if (glassBlurAllowed() && HabibConfig.appearance.backgroundBlur && !HabibConfig.appearance.reducedTransparency) extractBlurredBackground(ctx);
+    }
+
+    @Override
     public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         super.extractRenderState(ctx, mx, my, delta);
         long now = System.nanoTime();
         float dt = Math.min(0.05f, (now - lastNanos) / 1_000_000_000f);
         lastNanos = now;
 
+        updatePalette(dt);
         frameDt = dt;
         hoverCounter = 0;
         pollKeys();
 
-        open = approach(open, 1f, dt, 14f);
-        if (open > 0.995f) open = 1f;
+        open = approach(open, closing ? 0f : 1f, dt, 18f);
+        if (closing && open < 0.02f) { super.onClose(); return; }
+        if (!closing && open > 0.995f) open = 1f;
         tabFade = approach(tabFade, 1f, dt, 12f);
         scrollTarget = Math.max(0f, Math.min(maxScroll(), scrollTarget));
         scroll = approach(scroll, scrollTarget, dt, 18f);
@@ -433,126 +504,94 @@ public class MenuScreen extends Screen {
         }
 
         geometry();
-        ctx.fill(0, 0, width, height, alpha(0xFF000000, (layoutMode ? 0.30f : 0.55f) * open));
+        ctx.fill(0, 0, width, height, alpha(0xFF101520, (layoutMode ? 0.08f : 0.15f) * open));
 
         // modules are drawn here (the normal HUD is skipped while this screen is open) so changes show live
         Minecraft mc = Minecraft.getInstance();
         for (HudModule m : all) {
-            if (m.enabled) m.draw(ctx, mc, true);
+            boolean outsidePanel = m.x + m.scaledWidth() < px * uiScale || m.x > (px + pw) * uiScale
+                    || m.y + m.scaledHeight() < py * uiScale || m.y > (py + ph) * uiScale;
+            if (m.enabled && (layoutMode || outsidePanel)) m.draw(ctx, mc, true);
         }
 
         if (layoutMode) {
             renderLayoutMode(ctx, mx, my, dt);
         } else {
-            renderPanel(ctx, mx, my, dt, now);
+            ctx.pose().pushMatrix();
+            try {
+                ctx.pose().scale(uiScale, uiScale);
+                renderPanel(ctx, Math.round(mx / uiScale), Math.round(my / uiScale), dt, now);
+            } finally { ctx.pose().popMatrix(); }
         }
     }
 
     private void renderPanel(GuiGraphicsExtractor ctx, int mx, int my, float dt, long now) {
+        searchField.visible = true;
+        packField.visible = tab == Tab.PACKS;
+        profileField.visible = tab == Tab.PROFILES;
+        hudXField.visible = hudYField.visible = tab == Tab.LAYOUT;
         float a = open;
+        GlassRenderer.panel(ctx, px, py, pw, ph, a);
+        rrect(ctx, px + 5, py + HEADER_H, SIDE_W - 2, ph - HEADER_H - 6, 11, alpha(SIDE_BG, a));
+        ctx.fill(px + SIDE_W + 8, cy, px + SIDE_W + 9, py + ph - 14, alpha(HAIR, a));
+        GlassRenderer.surface(ctx, px + 15, py + 13, 26, 26, 8, alpha(HAIR, a), alpha(ACCENT_DIM, a));
+        txtCentered(ctx, "H", px + 28, py + 22, alpha(ThemeManager.palette().accentText, a));
+        sectionTitle(ctx, "Habib Client", px + 50, py + 15, a);
+        txt(ctx, "Premium. Performance. Control.", px + 50, py + 29, alpha(MUTED, a));
 
-        // Layered translucent surfaces create a soft glass feel without obscuring the game.
-        rrect(ctx, px - 3, py + 3, pw + 6, ph + 6, 18, alpha(0x50000000, a));
-        rrect(ctx, px - 1, py - 1, pw + 2, ph + 2, 18, alpha(0xA0FFFFFF, a * 0.24f));
-        rrect(ctx, px, py, pw, ph, 17, alpha(BG, a));
-        rrect(ctx, px + 2, py + 1, pw - 4, HEADER_H + 4, 15, alpha(0x20FFFFFF, a));
-        ctx.fill(px + 16, py + 1, px + pw - 16, py + 2, alpha(0x70FFFFFF, a * 0.42f));
-        rrect(ctx, px + 2, py + HEADER_H, SIDE_W - 3, ph - HEADER_H - 2, 13, alpha(SIDE_BG, a));
-        ctx.fill(px + SIDE_W + 4, py + HEADER_H + 8, px + SIDE_W + 5, py + ph - 8, alpha(HAIR, a));
-        ctx.fill(px + 12, py + HEADER_H - 1, px + pw - 12, py + HEADER_H, alpha(HAIR, a));
+        int searchX = px + pw - 212;
+        glassBorder(ctx, searchX, py + 15, 170, 23, 11, alpha(searchField.isFocused() ? ACCENT : HAIR, a), alpha(ROW, a));
+        searchField.setX(searchX + 10);
+        searchField.setY(py + 23);
+        searchField.setWidth(150);
+        searchField.setHeight(12);
+        searchField.setTextColor(TEXT);
+        searchField.setTextShadow(false);
+        searchField.extractWidgetRenderState(ctx, mx, my, 0f);
 
-        // Compact brand mark, title and update chip.
-        rrect(ctx, px + 12, py + 10, 18, 18, 6, alpha(ACCENT, a));
-        txtCentered(ctx, "H", px + 21, py + 15, alpha(0xFFFFFFFF, a));
-        Component habib = Component.literal("HABIB").withStyle(st -> st.withBold(true));
-        ctx.text(font, habib, px + 38, py + 13, alpha(TEXT, a), false);
-        int habibW = font.width(habib);
-        txt(ctx, " CLIENT", px + 38 + habibW, py + 13, alpha(MUTED, a));
-
-        // version + update status (click to check / install)
-        boolean pillOver = inside(mx, my, pillX() - 6, py + 8, pillW() + 12, 22);
-        float pillMotion = hoverSpring(4091, pillOver);
-        float pillBounce = lastHoverBounce;
-        int pillCol = Updater.highlighted() ? ACCENT : pillOver ? TEXT : MUTED;
-        if (pillMotion > 0.01f || pillBounce > 0.01f) {
-            drawHoverSurface(ctx, pillX() - 6, py + 9, pillW() + 12, 20, 10,
-                    0x10151D25, 0x24324250, pillMotion, pillBounce, a);
-        }
-        glassBorder(ctx, pillX() - 6, py + 9, pillW() + 12, 20, 10,
-                alpha(pillOver || Updater.highlighted() ? ACCENT : 0x48FFFFFF, a * 0.65f),
-                alpha(0x20FFFFFF, a));
-        txt(ctx, pillText(), pillX(), py + 15, alpha(pillCol, a * (Updater.highlighted() || pillOver ? 1f : 0.96f)));
-
-        // breadcrumb: where you are
-        txtRight(ctx, tab.label, px + pw - 42, py + 15, alpha(MUTED, a * 0.92f));
-
-        // close button
-        boolean closeHover = inside(mx, my, px + pw - 32, py + 8, 22, 22);
-        float closeMotion = hoverSpring(4090, closeHover);
-        float closeBounce = lastHoverBounce;
-        drawHoverSurface(ctx, px + pw - 32, py + 8, 22, 22, 11,
-                0x10343E4B, 0x38FFFFFF, closeMotion, closeBounce, a);
-        txtCentered(ctx, "x", px + pw - 21, py + 15, alpha(closeHover ? ACCENT : MUTED, a));
-
-        // sidebar
-        int base = py + HEADER_H + 8;
-        txt(ctx, "HUD MODULES", px + 14, base, alpha(MUTED, a * 0.9f));
-        ctx.fill(px + 14 + font.width("HUD MODULES") + 6, base + 4, px + SIDE_W - 12, base + 5, alpha(HAIR, a));
-        txt(ctx, "TOOLS", px + 14, base + 102, alpha(MUTED, a * 0.9f));
-        ctx.fill(px + 14 + font.width("TOOLS") + 6, base + 106, px + SIDE_W - 12, base + 107, alpha(HAIR, a));
+        boolean closeHover = inside(mx, my, px + pw - 33, py + 15, 23, 23);
+        rrect(ctx, px + pw - 33, py + 15, 23, 23, 11, alpha(closeHover ? ROW_HOVER : ROW, a));
+        txtCentered(ctx, "x", px + pw - 22, py + 22, alpha(TEXT, a));
 
         float targetY = tabY(tab.ordinal());
         if (highlightY < 0f) highlightY = targetY;
-        highlightY = approach(highlightY, targetY, dt, 16f);
-        int hy = Math.round(highlightY);
-        rrect(ctx, px + 8, hy, SIDE_W - 16, TAB_H, 9, alpha(ACCENT, a * 0.14f));
-        rrect(ctx, px + 10, hy + 5, 3, TAB_H - 10, 2, alpha(ACCENT, a));
-
+        highlightY = approach(highlightY, targetY, dt, 18f);
+        rrect(ctx, px + 11, Math.round(highlightY), SIDE_W - 13, TAB_H, 7, alpha(ThemeManager.palette().selected, a));
         for (int i = 0; i < TABS.length; i++) {
-            boolean over = inside(mx, my, px + 8, tabY(i), SIDE_W - 16, TAB_H);
+            boolean active = TABS[i] == tab;
+            boolean over = inside(mx, my, px + 11, tabY(i), SIDE_W - 13, TAB_H);
             tabHover[i] = hoverSpring(2048 + i, over);
-            float tabBounce = lastHoverBounce;
-            float strength = Math.max(TABS[i] == tab ? 1f : 0f, tabHover[i] * 0.8f);
-            if (TABS[i] != tab && (tabHover[i] > 0.01f || tabBounce > 0.01f)) {
-                drawHoverSurface(ctx, px + 8, tabY(i), SIDE_W - 16, TAB_H, 9,
-                        0x10151D25, 0x36FFFFFF, tabHover[i], tabBounce, a);
-            } else if (TABS[i] == tab && tabBounce > 0.01f) {
-                drawHoverBounce(ctx, px + 8, tabY(i), SIDE_W - 16, TAB_H, 9,
-                        tabBounce, a);
-            }
-            txt(ctx, TABS[i].label, px + 20, tabY(i) + 5, alpha(mix(MUTED, TEXT, strength), a));
-            if (TABS[i].category == null && i < 10) {
-                txtRight(ctx, i == 9 ? "0" : Integer.toString(i + 1), px + SIDE_W - 14, tabY(i) + 5, alpha(MUTED, a * 0.68f));
-            }
-            if (TABS[i].category != null) {
-                int on = 0;
-                int total = 0;
-                for (HudModule m : HudManager.MODULES) {
-                    if (m.category != TABS[i].category) continue;
-                    total++;
-                    if (m.enabled) on++;
-                }
-                txtRight(ctx, on + "/" + total, px + SIDE_W - 14, tabY(i) + 5,
-                        alpha(MUTED, a * (0.68f + 0.3f * strength)));
-            }
+            if (!active) rrect(ctx, px + 11, tabY(i), SIDE_W - 13, TAB_H, 7, alpha(ROW_HOVER, a * tabHover[i] * 0.55f));
+            GlassRenderer.icon(ctx, i, px + 19, tabY(i) + 7, alpha(active ? ACCENT : MUTED, a));
+            txt(ctx, TABS[i].label, px + 38, tabY(i) + 8, alpha(active ? TEXT : MUTED, a));
         }
+        boolean updateOver = inside(mx, my, pillX(), pillY(), SIDE_W - 20, 20);
+        rrect(ctx, pillX(), pillY(), SIDE_W - 20, 20, 7, alpha(updateOver ? ROW_HOVER : ROW, a));
+        txt(ctx, pillText(), pillX() + 6, pillY() + 6, alpha(Updater.highlighted() ? ACCENT : MUTED, a));
 
-        // content
+        // Each content viewport restores its own scissor; HUD previews remain outside this transform.
         float ca = a * tabFade;
-        int oy = cy + Math.round((1f - tabFade) * 8f);
-        ctx.enableScissor(cx - 2, cy - 2, cx + cw + 2, cy + ch + 2);
-        switch (tab) {
-            case ANIMATIONS -> renderAnimations(ctx, mx, my, dt, now, ca, oy);
-            case PACKS -> renderPacks(ctx, mx, my, dt, ca, oy);
-            case OPTIMIZE -> renderOptimize(ctx, mx, my, dt, ca, oy);
-            case EFFECTS -> renderEffects(ctx, mx, my, dt, ca, oy);
-            case PRESETS_TAB -> renderPresets(ctx, mx, my, dt, ca, oy);
-            case LAYOUT -> renderLayoutTab(ctx, mx, my, dt, ca, oy);
-            case PROFILES -> renderProfiles(ctx, mx, my, ca, oy);
-            default -> renderModules(ctx, mx, my, dt, ca);
-        }
-        ctx.disableScissor();
+        int oy = cy;
+        ctx.enableScissor(cx - 2, cy, cx + cw + 2, cy + ch);
+        try {
+            if (tab.category == null && tab != Tab.PACKS && tab != Tab.PROFILES) oy -= Math.round(scroll);
+            switch (tab) {
+                case APPEARANCE -> renderAppearance(ctx, mx, my, dt, ca, oy);
+                case ANIMATIONS -> renderAnimations(ctx, mx, my, dt, now, ca, oy);
+                case PACKS -> renderPacks(ctx, mx, my, dt, ca, oy);
+                case OPTIMIZE -> renderOptimize(ctx, mx, my, dt, ca, oy);
+                case EFFECTS -> renderEffects(ctx, mx, my, dt, ca, oy);
+                case PRESETS_TAB -> renderPresets(ctx, mx, my, dt, ca, oy);
+                case LAYOUT -> renderLayoutTab(ctx, mx, my, dt, ca, oy);
+                case PROFILES -> renderProfiles(ctx, mx, my, ca, oy);
+                default -> renderModules(ctx, mx, my, dt, ca);
+            }
+        } finally { ctx.disableScissor(); }
         scrollbar(ctx, a);
+        if (armorDropdown >= 0) renderDropdown(ctx, mx, my);
+        if (confirmReset) renderConfirmation(ctx, mx, my);
+        else if (updateOver) tooltip(ctx, Updater.statusText(), mx, my);
+        else if (closeHover) tooltip(ctx, "Close menu (Esc)", mx, my);
     }
 
     /** Thin scroll indicator on the panel's right edge, only when the list actually scrolls. */
@@ -570,13 +609,14 @@ public class MenuScreen extends Screen {
 
     private void renderModules(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca) {
         List<HudModule> list = modulesFor(tab.category);
-        int slide = Math.round((1f - tabFade) * 8f);
+        int slide = 0;
         int enabled = 0;
         for (HudModule module : list) if (module.enabled) enabled++;
-        sectionTitle(ctx, tab.label + " widgets", cx, cy + 1, ca);
+        sectionTitle(ctx, query.isEmpty() ? tab.label : "Search results", cx, cy + 1, ca);
         txtRight(ctx, enabled + " / " + list.size() + " ON", cx + cw, cy + 2, alpha(MUTED, ca * 0.95f));
-        txt(ctx, "Toggle, resize and recolour each HUD item.", cx, cy + 14, alpha(MUTED, ca * 0.92f));
+        txt(ctx, "Personalise your HUD with live previews.", cx, cy + 14, alpha(MUTED, ca * 0.92f));
 
+        ctx.enableScissor(cx - 2, cy + 33, cx + cw + 2, cy + ch);
         for (int j = 0; j < list.size(); j++) {
             HudModule m = list.get(j);
             int idx = HudManager.MODULES.indexOf(m);
@@ -592,13 +632,14 @@ public class MenuScreen extends Screen {
             glassBorder(ctx, cx, ry, cw, ROW_H, 9, alpha(0x30FFFFFF, ca * (0.55f + hover[idx] * 0.45f)), alpha(rowFill, ca));
             rrect(ctx, cx + 9, ry + 8, 3, ROW_H - 16, 2,
                     alpha(mix(OFF, m.color | 0xFF000000, toggle[idx]), ca));
-            txt(ctx, m.label, cx + 19, ry + 10, alpha(mix(MUTED, TEXT, toggle[idx]), ca));
+            txt(ctx, font.plainSubstrByWidth(m.label, cw - 232), cx + 19, ry + 10, alpha(mix(MUTED, TEXT, toggle[idx]), ca));
 
-            // Scale controls appear on hover; color and on/off stay visible and aligned.
-            float hv = hover[idx] * ca;
+            txt(ctx, m.category.label + " widget", cx + 19, ry + 25, alpha(MUTED, ca * 0.85f));
+            // Scale controls remain available alongside colour and on/off.
+            float hv = ca;
             if (hv > 0.02f && cw > 350) {
                 txt(ctx, "SCALE", cx + cw - 220, ry + 12, alpha(MUTED, hv * 0.95f));
-                smallButton(ctx, mx, my, cx + cw - 174, ry + 8, "-", hv);
+                smallButton(ctx, mx, my, cx + cw - 184, ry + 8, "-", hv);
                 txtCentered(ctx, String.format(Locale.ROOT, "%.1fx", m.scale), cx + cw - 148, ry + 11, alpha(MUTED, hv));
                 smallButton(ctx, mx, my, cx + cw - 122, ry + 8, "+", hv);
             }
@@ -610,23 +651,17 @@ public class MenuScreen extends Screen {
             drawSwitch(ctx, cx + cw - 40, ry + 7, toggle[idx], ca);
         }
 
-        if (list.isEmpty()) {
-            txt(ctx, "Nothing here yet.", cx, cy + 38, alpha(MUTED, ca));
-        }
+        ctx.disableScissor();
+        if (list.isEmpty()) txt(ctx, "No modules match your search.", cx, cy + 38, alpha(MUTED, ca));
     }
 
-    private String pillText() {
-        return font.plainSubstrByWidth("v" + Updater.currentVersion() + "  -  " + Updater.statusText(), pw - 250);
-    }
+    private String pillText() { return font.plainSubstrByWidth("v" + Updater.currentVersion() + "  " + (Updater.highlighted() ? "Update ready" : "Updates"), SIDE_W - 32); }
 
-    private int pillW() {
-        return font.width(pillText());
-    }
+    private int pillW() { return SIDE_W - 20; }
 
-    private int pillX() {
-        Component habib = Component.literal("HABIB").withStyle(st -> st.withBold(true));
-        return px + 38 + font.width(habib) + font.width(" CLIENT") + 10;
-    }
+    private int pillX() { return px + 12; }
+
+    private int pillY() { return py + ph - 28; }
 
     /** Thin status stripe on the left edge of a row: lit in the given colour when on. */
     private static void stripe(GuiGraphicsExtractor ctx, int x, int y, int h, float t, int onColor, float a) {
@@ -649,13 +684,100 @@ public class MenuScreen extends Screen {
         txtCentered(ctx, label, x + 8, y + 4, alpha(over ? TEXT : MUTED, a));
     }
 
-    private void drawSwitch(GuiGraphicsExtractor ctx, int x, int y, float t, float a) {
-        rrect(ctx, x, y, 34, 18, 9, alpha(mix(0xFF48515E, ACCENT, t), a));
-        rrect(ctx, x + 1, y + 1, 32, 16, 8, alpha(mix(0xFF424B58, ACCENT, t), a));
-        rrect(ctx, x + 2, y + 2, 30, 6, 4, alpha(0x20FFFFFF, a));
-        int knobX = x + 2 + Math.round(t * 16f);
-        rrect(ctx, knobX, y + 2, 14, 14, 7, alpha(0xD0FFFFFF, a));
-        rrect(ctx, knobX + 1, y + 3, 12, 5, 4, alpha(0x55FFFFFF, a));
+    private void drawSwitch(GuiGraphicsExtractor ctx, int x, int y, float t, float a) { GlassRenderer.toggle(ctx, x, y, t, a); }
+
+
+    private void renderAppearance(GuiGraphicsExtractor ctx, int mx, int my, float dt, float a, int y) {
+        AppearanceSettings settings = HabibConfig.appearance;
+        sectionTitle(ctx, "Appearance", cx, y, a);
+        txt(ctx, "Make Habib Client feel at home.", cx, y + 14, alpha(MUTED, a));
+        String[] labels = {"Theme Mode", "Glass Transparency", "Background Blur", "Blur Strength", "Animations", "Reduced Transparency", "Accent Colour", "Reset Appearance"};
+        String[] descriptions = {settings.themeMode == ThemeMode.AUTO ? ThemeManager.systemDescription() : "Manual appearance override.", "Adjust the opacity of glass panels.", "Frost the world using Minecraft's blur.", "Amount of world blur behind this menu.", "Smooth, responsive interface transitions.", "More opaque glass with fewer effects.", "Colour for switches and selected controls.", "Restore the default appearance settings."};
+        for (int row = 0; row < labels.length; row++) {
+            int top = y + 32 + row * 40;
+            boolean over = inside(mx, my, cx, top, cw, 36);
+            hoverRowCard(ctx, cx, top, cw, 36, 9, over, a);
+            txt(ctx, labels[row], cx + 10, top + 6, alpha(TEXT, a));
+            txt(ctx, font.plainSubstrByWidth(descriptions[row], cw - 168), cx + 10, top + 21, alpha(MUTED, a));
+            int right = cx + cw - 10;
+            if (row == 0) {
+                int start = right - 138;
+                rrect(ctx, start, top + 7, 138, 22, 11, alpha(OFF, a * 0.32f));
+                themeSegment = approach(themeSegment, settings.themeMode.ordinal(), dt, 18f);
+                rrect(ctx, start + Math.round(themeSegment * 46), top + 7, 46, 22, 11, alpha(ACCENT, a));
+                for (ThemeMode mode : ThemeMode.values()) txtCentered(ctx, mode.label, start + mode.ordinal() * 46 + 23, top + 14, alpha(mode == settings.themeMode ? ThemeManager.palette().accentText : MUTED, a));
+            } else if (row == 1) {
+                opacityVisual = approach(opacityVisual, settings.opacity, dt, 22f);
+                GlassRenderer.slider(ctx, right - 138, top + 9, 92, (opacityVisual - 0.35f) / 0.65f, a);
+                txtRight(ctx, Math.round(settings.opacity * 100) + "%", right, top + 14, alpha(TEXT, a));
+            } else if (row == 2 || row == 4 || row == 5) {
+                boolean on = row == 2 ? settings.backgroundBlur : row == 4 ? settings.animations : settings.reducedTransparency;
+                appearanceToggle[row] = approach(appearanceToggle[row], on ? 1f : 0f, dt, 18f);
+                drawSwitch(ctx, right - 34, top + 9, appearanceToggle[row], a);
+            } else if (row == 3) {
+                GlassRenderer.slider(ctx, right - 138, top + 9, 92, (settings.blurStrength - 1) / 9f, a * (settings.backgroundBlur && !settings.reducedTransparency ? 1f : 0.4f));
+                txtRight(ctx, settings.blurStrength + "/10", right, top + 14, alpha(MUTED, a));
+            } else if (row == 6) {
+                for (int i = 0; i < ACCENTS.length; i++) {
+                    int x = right - 112 + i * 28;
+                    rrect(ctx, x - 1, top + 7, 23, 23, 11, alpha(settings.accent == ACCENTS[i] ? TEXT : HAIR, a));
+                    rrect(ctx, x + 1, top + 9, 19, 19, 9, alpha(ACCENTS[i], a));
+                }
+            } else txtRight(ctx, "Reset >", right, top + 14, alpha(TEXT, a));
+        }
+    }
+
+    private void appearanceClicked(double mx, double my) {
+        int row = (int) ((my - cy - 32) / 40);
+        if (my < cy + 32 || row < 0 || row > 7 || (my - cy - 32) % 40 >= 36) return;
+        AppearanceSettings settings = HabibConfig.appearance;
+        int right = cx + cw - 10;
+        switch (row) {
+            case 0 -> {
+                if (mx >= right - 138) settings.themeMode = ThemeMode.values()[Math.min(2, (int) ((mx - right + 138) / 46))];
+            }
+            case 1 -> { if (mx >= right - 148) { appearanceDrag = true; setOpacity(mx); } }
+            case 3 -> { if (mx >= right - 148 && settings.backgroundBlur && !settings.reducedTransparency) { blurDrag = true; setBlur(mx); } }
+            case 2 -> settings.backgroundBlur = !settings.backgroundBlur;
+            case 4 -> settings.animations = !settings.animations;
+            case 5 -> settings.reducedTransparency = !settings.reducedTransparency;
+            case 6 -> {
+                int i = (int) ((mx - right + 112) / 28);
+                if (mx >= right - 113 && i >= 0 && i < ACCENTS.length) settings.accent = ACCENTS[i];
+            }
+            case 7 -> confirmReset = true;
+            default -> { }
+        }
+        if (!appearanceDrag && !blurDrag) HabibConfig.save();
+    }
+
+    private void setOpacity(double mx) {
+        HabibConfig.appearance.opacity = 0.35f + 0.65f * (float) Math.max(0, Math.min(1, (mx - (cx + cw - 148)) / 92));
+    }
+
+    private void renderConfirmation(GuiGraphicsExtractor ctx, int mx, int my) {
+        float fade = modalOpacity = approach(modalOpacity, 1f, frameDt, 20f);
+        rrect(ctx, px, py, pw, ph, 16, alpha(0x78000000, fade));
+        int x = px + (pw - 290) / 2, y = py + (ph - 116) / 2;
+        rrect(ctx, x, y, 290, 116, 16, alpha(BG | 0xFF000000, fade));
+        GlassRenderer.panel(ctx, x, y, 290, 116, fade);
+        sectionTitle(ctx, "Reset appearance?", x + 16, y + 17, fade);
+        txt(ctx, "Your modules and profiles will be kept.", x + 16, y + 37, alpha(MUTED, fade));
+        profileButton(ctx, inside(mx, my, x + 16, y + 70, 122, 26), x + 16, y + 70, 122, 26, "Cancel", ROW, fade);
+        profileButton(ctx, inside(mx, my, x + 150, y + 70, 122, 26), x + 150, y + 70, 122, 26, "Reset", ACCENT, fade);
+    }
+
+    private void tooltip(GuiGraphicsExtractor ctx, String value, int mx, int my) {
+        String label = font.plainSubstrByWidth(value, pw - 28);
+        int w = font.width(label) + 16;
+        int x = Math.max(px + 8, Math.min(px + pw - w - 8, mx));
+        int y = Math.min(py + ph - 28, my + 15);
+        glassBorder(ctx, x, y, w, 23, 7, HAIR, ThemeManager.palette().panel | 0xFF000000);
+        txt(ctx, label, x + 8, y + 8, TEXT);
+    }
+
+    private void setBlur(double mx) {
+        HabibConfig.appearance.blurStrength = 1 + Math.round(9 * (float) Math.max(0, Math.min(1, (mx - (cx + cw - 148)) / 92)));
     }
 
     private void renderAnimations(GuiGraphicsExtractor ctx, int mx, int my, float dt, long now, float ca, int oy) {
@@ -677,7 +799,7 @@ public class MenuScreen extends Screen {
         for (int i = 0; i < SwingAnimator.COUNT; i++) {
             boolean selected = i == style;
             txtCentered(ctx, SwingAnimator.NAMES[i], cx + i * segW + segW / 2, segY + 7,
-                    alpha(selected ? 0xFFFFFFFF : MUTED, ca));
+                    alpha(selected ? ThemeManager.palette().accentText : MUTED, ca));
         }
 
         // only-on-hit toggle
@@ -694,11 +816,8 @@ public class MenuScreen extends Screen {
         txt(ctx, "Intensity", cx, slY, alpha(TEXT, ca * live));
         txtRight(ctx, Math.round(k * 100f) + "%", cx + cw, slY, alpha(MUTED, ca));
         int trackY = slY + 16;
-        float t = (k - 0.25f) / 1.75f;
-        int knobX = cx + Math.round(cw * t);
-        ctx.fill(cx, trackY + 2, cx + cw, trackY + 4, alpha(OFF, ca));
-        ctx.fill(cx, trackY + 2, Math.max(cx + 2, knobX), trackY + 4, alpha(ACCENT, ca * live));
-        ctx.fill(knobX - 2, trackY - 2, knobX + 2, trackY + 8, alpha(0xFFEDEDED, ca * live));
+        intensityVisual = approach(intensityVisual, k, dt, 22f);
+        GlassRenderer.slider(ctx, cx + 5, trackY - 3, cw - 10, (intensityVisual - 0.25f) / 1.75f, ca * live);
 
         // curve preview
         int pvY = slY + 38;
@@ -866,7 +985,7 @@ public class MenuScreen extends Screen {
         float bounce = lastHoverBounce;
         drawHoverBounce(ctx, x, y, w, h, 7, bounce, ca);
         rrect(ctx, x, y, w, h, 7, alpha(mix(base, mix(base, 0xFFFFFFFF, 0.15f), progress), ca));
-        txtCentered(ctx, label, x + w / 2, y + (h - 8) / 2, alpha(TEXT, ca));
+        txtCentered(ctx, label, x + w / 2, y + (h - 8) / 2, alpha(base == ACCENT || base == ACCENT_DIM ? ThemeManager.palette().accentText : TEXT, ca));
     }
 
     private void renderProfiles(GuiGraphicsExtractor ctx, int mx, int my, float ca, int oy) {
@@ -882,11 +1001,13 @@ public class MenuScreen extends Screen {
         profileField.setY(fy + 6);
         profileField.setWidth(fw - 16);
         profileField.setHeight(8);
+        profileField.setTextColor(TEXT);
+        profileField.setTextShadow(false);
         profileField.extractWidgetRenderState(ctx, mx, my, 0f);
         int bx = cx + fw + 6;
         profileButton(ctx, inside(mx, my, bx, fy, PROFILE_BTN_NEW_W, 20), bx, fy, PROFILE_BTN_NEW_W, 20, "Save new", ACCENT_DIM, ca);
         int px2 = bx + PROFILE_BTN_NEW_W + 6;
-        profileButton(ctx, inside(mx, my, px2, fy, PROFILE_BTN_PASTE_W, 20), px2, fy, PROFILE_BTN_PASTE_W, 20, "Paste code", 0xFF2A2A30, ca);
+        profileButton(ctx, inside(mx, my, px2, fy, PROFILE_BTN_PASTE_W, 20), px2, fy, PROFILE_BTN_PASTE_W, 20, "Paste code", ROW, ca);
 
         if (pendingDelete >= 0 && System.currentTimeMillis() - pendingDeleteAt > 3000L) pendingDelete = -1;
 
@@ -912,7 +1033,7 @@ public class MenuScreen extends Screen {
             int by = ry + 4;
             txt(ctx, font.plainSubstrByWidth(list.get(j).name, lx - cx - 18), cx + 10, ry + 9, alpha(TEXT, ca));
             profileButton(ctx, clip && inside(mx, my, lx, by, 34, 18), lx, by, 34, 18, "Load", ACCENT_DIM, ca);
-            profileButton(ctx, clip && inside(mx, my, sx, by, 38, 18), sx, by, 38, 18, "Share", 0xFF2A2A30, ca);
+            profileButton(ctx, clip && inside(mx, my, sx, by, 38, 18), sx, by, 38, 18, "Share", ROW, ca);
             profileButton(ctx, clip && inside(mx, my, ux, by, 42, 18), ux, by, 42, 18, "Update", 0xFF2A2A30, ca);
             boolean pend = pendingDelete == j;
             profileButton(ctx, clip && inside(mx, my, dx, by, 16, 18), dx, by, 16, 18, pend ? "?" : "x", pend ? 0xFF9B2C2C : 0xFF2A2A30, ca);
@@ -1237,6 +1358,8 @@ public class MenuScreen extends Screen {
         packField.setY(oy + 24 + 5);
         packField.setWidth(cw - 16);
         packField.setHeight(8);
+        packField.setTextColor(TEXT);
+        packField.setTextShadow(false);
         packField.extractWidgetRenderState(ctx, mx, my, 0f);
         if (!packsInstalledView && searchAt > 0 && System.currentTimeMillis() >= searchAt) runSearch();
 
@@ -1368,49 +1491,110 @@ public class MenuScreen extends Screen {
         boolean over = inside(mx, my, cx, y, cw, 22);
         hoverRowCard(ctx, cx, y, cw, 22, 8, over, ca);
         txt(ctx, label, cx + 10, y + 7, alpha(TEXT, ca));
-        txtRight(ctx, "< " + value + " >", cx + cw - 10, y + 7, alpha(over ? ACCENT : MUTED, ca));
+        txtRight(ctx, value + "  v", cx + cw - 10, y + 7, alpha(over ? ACCENT : MUTED, ca));
+    }
+
+
+    private int dropdownY() {
+        int rowBottom = cy + (armorDropdown == 0 ? 344 : 370) - Math.round(scroll);
+        int count = armorDropdown == 0 ? ARMOR_LAYOUTS.length : ARMOR_DURABILITY.length;
+        return Math.max(cy, Math.min(rowBottom, cy + ch - count * 22 - 8));
+    }
+
+    private void renderDropdown(GuiGraphicsExtractor ctx, int mx, int my) {
+        String[] options = armorDropdown == 0 ? ARMOR_LAYOUTS : ARMOR_DURABILITY;
+        dropdownExpansion = approach(dropdownExpansion, 1f, frameDt, 22f);
+        int x = cx + cw - 150, y = dropdownY(), h = options.length * 22 + 8;
+        glassBorder(ctx, x, y, 150, h, 9, HAIR, BG | 0xFF000000);
+        ctx.enableScissor(x, y, x + 150, y + Math.round(h * dropdownExpansion));
+        try {
+            for (int i = 0; i < options.length; i++) {
+                int top = y + 4 + i * 22;
+                if (inside(mx, my, x + 4, top, 142, 22)) rrect(ctx, x + 4, top, 142, 22, 6, ROW_HOVER);
+                int selected = armorDropdown == 0 ? HabibConfig.armorLayout : HabibConfig.armorDurability;
+                txt(ctx, options[i], x + 12, top + 7, selected == i ? ACCENT : TEXT);
+            }
+        } finally { ctx.disableScissor(); }
+    }
+
+    private void dropdownClicked(double mx, double my) {
+        int y = dropdownY();
+        String[] options = armorDropdown == 0 ? ARMOR_LAYOUTS : ARMOR_DURABILITY;
+        if (inside(mx, my, cx + cw - 150, y + 4, 150, options.length * 22)) {
+            int index = Math.min(options.length - 1, (int) ((my - y - 4) / 22));
+            if (armorDropdown == 0) HabibConfig.armorLayout = index; else HabibConfig.armorDurability = index;
+            HabibConfig.save();
+        }
+        armorDropdown = -1;
     }
 
     private void renderLayoutTab(GuiGraphicsExtractor ctx, int mx, int my, float dt, float ca, int oy) {
-        sectionTitle(ctx, "HUD layout", cx, oy, ca);
-        txt(ctx, "Drag modules anywhere on screen, resize them with the", cx, oy + 14, alpha(MUTED, ca));
-        txt(ctx, "scroll wheel and recolour them with right-click.", cx, oy + 26, alpha(MUTED, ca));
+        sectionTitle(ctx, "HUD Editor", cx, oy, ca);
+        txt(ctx, "Choose a widget, refine its position, or drag it in the live editor.", cx, oy + 14, alpha(MUTED, ca));
+        profileButton(ctx, inside(mx, my, cx, oy + 32, 150, 22), cx, oy + 32, 150, 22, "Open layout editor", ACCENT, ca);
+        profileButton(ctx, inside(mx, my, cx + 160, oy + 32, 110, 22), cx + 160, oy + 32, 110, 22, "Reset layout", ROW, ca);
+        int top = oy + 64, listWidth = 142, listHeight = 220;
+        rrect(ctx, cx, top, listWidth, listHeight, 9, alpha(SIDE_BG, ca));
+        ctx.enableScissor(cx, Math.max(cy, top), cx + listWidth, Math.min(cy + ch, top + listHeight));
+        try {
+            for (int i = 0; i < HudManager.MODULES.size(); i++) {
+                HudModule module = HudManager.MODULES.get(i);
+                int y = top + 4 + i * 24 - Math.round(hudListScroll);
+                if (y + 24 < top || y > top + listHeight) continue;
+                boolean over = inside(mx, my, cx + 4, y, listWidth - 8, 22);
+                if (module == selectedHud || over) rrect(ctx, cx + 4, y, listWidth - 8, 22, 6, alpha(module == selectedHud ? ThemeManager.palette().selected : ROW_HOVER, ca));
+                GlassRenderer.icon(ctx, module.category.ordinal(), cx + 10, y + 6, alpha(module == selectedHud ? ACCENT : MUTED, ca));
+                txt(ctx, font.plainSubstrByWidth(module.label, listWidth - 36), cx + 27, y + 7, alpha(TEXT, ca));
+            }
+        } finally { ctx.disableScissor(); }
+        float listMax = Math.max(0, HudManager.MODULES.size() * 24 + 8 - listHeight);
+        if (listMax > 0) rrect(ctx, cx + listWidth - 3, top + Math.round(190 * hudListScroll / listMax), 2, 30, 1, alpha(MUTED, ca * 0.6f));
+        if (selectedHud == null) return;
+        int detailX = cx + 152, detailW = cw - 152;
+        glassBorder(ctx, detailX, top, detailW, listHeight, 9, alpha(HAIR, ca), alpha(ROW, ca));
+        txt(ctx, font.plainSubstrByWidth(selectedHud.label, detailW - 56), detailX + 12, top + 12, alpha(TEXT, ca));
+        drawSwitch(ctx, detailX + detailW - 44, top + 7, approach(selectedToggle, selectedHud.enabled ? 1f : 0f, dt, 18f), ca);
+        selectedToggle = approach(selectedToggle, selectedHud.enabled ? 1f : 0f, dt, 18f);
+        ctx.fill(detailX + 10, top + 33, detailX + detailW - 10, top + 34, alpha(HAIR, ca));
+        txt(ctx, "Position", detailX + 12, top + 44, alpha(MUTED, ca));
+        int fieldWidth = (detailW - 32) / 2;
+        hudPositionField(ctx, hudXField, detailX + 12, top + 60, fieldWidth, selectedHud.x, "X", mx, my, ca);
+        hudPositionField(ctx, hudYField, detailX + 20 + fieldWidth, top + 60, fieldWidth, selectedHud.y, "Y", mx, my, ca);
+        txt(ctx, "Scale", detailX + 12, top + 101, alpha(MUTED, ca));
+        txtRight(ctx, Math.round(selectedHud.scale * 100) + "%", detailX + detailW - 12, top + 101, alpha(TEXT, ca));
+        selectedScale = approach(selectedScale, selectedHud.scale, dt, 22f);
+        GlassRenderer.slider(ctx, detailX + 16, top + 118, detailW - 32, (selectedScale - 0.5f) / 2.5f, ca);
+        txt(ctx, "Colour", detailX + 12, top + 151, alpha(MUTED, ca));
+        rrect(ctx, detailX + detailW - 34, top + 145, 20, 20, 8, selectedHud.color | 0xFF000000);
+        ctx.enableScissor(detailX + 12, top + 174, detailX + detailW - 12, top + 212);
+        ctx.pose().pushMatrix();
+        try {
+            ctx.pose().translate((float) (detailX + 16 - selectedHud.x), (float) (top + 184 - selectedHud.y));
+            selectedHud.draw(ctx, mc(), true);
+        } finally { ctx.pose().popMatrix(); ctx.disableScissor(); }
+        txt(ctx, "ARMOR HUD", cx, oy + 302, alpha(MUTED, ca));
+        armorOptionRow(ctx, mx, my, oy + 320, "Style", ARMOR_LAYOUTS[HabibConfig.armorLayout], ca);
+        armorOptionRow(ctx, mx, my, oy + 346, "Durability", ARMOR_DURABILITY[HabibConfig.armorDurability], ca);
+        heldToggle = approach(heldToggle, HabibConfig.armorShowHeld ? 1f : 0f, dt, 18f);
+        optimizeRow(ctx, mx, my, oy + 372, "Show held item", "Include your main-hand item in the armor widget.", heldToggle, ca);
+        bgToggle = approach(bgToggle, HabibConfig.hudBackground ? 1f : 0f, dt, 18f);
+        optimizeRow(ctx, mx, my, oy + 406, "Widget backgrounds", "Draw a readable background behind HUD widgets.", bgToggle, ca);
+    }
 
-        boolean overA = inside(mx, my, cx, oy + 48, 150, 24);
-        boolean overB = inside(mx, my, cx + 160, oy + 48, 110, 24);
-        float buttonBounceA = hoverSpring(4001, overA);
-        float bounceA = lastHoverBounce;
-        float buttonBounceB = hoverSpring(4002, overB);
-        float bounceB = lastHoverBounce;
-        buttonHoverA = buttonBounceA;
-        buttonHoverB = buttonBounceB;
-        drawHoverSurface(ctx, cx, oy + 48, 150, 24, 10, ACCENT_DIM, ACCENT,
-                buttonHoverA, bounceA, ca);
-        txtCentered(ctx, "Open layout editor", cx + 75, oy + 56, alpha(0xFFFFFFFF, ca));
-        drawHoverSurface(ctx, cx + 160, oy + 48, 110, 24, 10, ROW, ROW_HOVER,
-                buttonHoverB, bounceB, ca);
-        txtCentered(ctx, "Reset layout", cx + 215, oy + 56, alpha(mix(MUTED, TEXT, buttonHoverB), ca));
+    private void hudPositionField(GuiGraphicsExtractor ctx, EditBox field, int x, int y, int w, int value, String axis, int mx, int my, float a) {
+        glassBorder(ctx, x, y, w, 26, 7, alpha(field.isFocused() ? ACCENT : HAIR, a), alpha(ROW, a));
+        txt(ctx, axis, x + 8, y + 9, alpha(MUTED, a));
+        field.setX(x + 22); field.setY(y + 9); field.setWidth(w - 28); field.setHeight(12);
+        field.setTextColor(TEXT); field.setTextShadow(false);
+        if (!field.isFocused()) field.setValue(Integer.toString(value));
+        field.extractWidgetRenderState(ctx, mx, my, 0f);
+    }
 
-        // background box on/off
-        bgToggle = approach(bgToggle, HabibConfig.hudBackground ? 1f : 0f, dt, 16f);
-        boolean overC = inside(mx, my, cx, oy + 84, cw, 26);
-        hoverRowCard(ctx, cx, oy + 84, cw, 26, 8, overC, ca);
-        stripe(ctx, cx, oy + 84, 26, bgToggle, ACCENT, ca);
-        txt(ctx, "Box behind HUD", cx + 10, oy + 93, alpha(mix(MUTED, TEXT, bgToggle), ca));
-        txtRight(ctx, HabibConfig.hudBackground ? "On" : "Text only", cx + cw - 44, oy + 93, alpha(MUTED, ca));
-        drawSwitch(ctx, cx + cw - 40, oy + 88, bgToggle, ca);
-
-        // armor HUD options
-        txt(ctx, "ARMOR HUD", cx, oy + 120, alpha(MUTED, ca * 0.8f));
-        ctx.fill(cx + font.width("ARMOR HUD") + 6, oy + 124, cx + cw, oy + 125, alpha(HAIR, ca));
-        heldToggle = approach(heldToggle, HabibConfig.armorShowHeld ? 1f : 0f, dt, 16f);
-        armorOptionRow(ctx, mx, my, oy + 132, "Layout", ARMOR_LAYOUTS[HabibConfig.armorLayout], ca);
-        armorOptionRow(ctx, mx, my, oy + 156, "Durability", ARMOR_DURABILITY[HabibConfig.armorDurability], ca);
-        boolean overH = inside(mx, my, cx, oy + 180, cw, 22);
-        hoverRowCard(ctx, cx, oy + 180, cw, 22, 8, overH, ca);
-        stripe(ctx, cx, oy + 180, 22, heldToggle, ACCENT, ca);
-        txt(ctx, "Show held item", cx + 10, oy + 187, alpha(mix(MUTED, TEXT, heldToggle), ca));
-        drawSwitch(ctx, cx + cw - 40, oy + 182, heldToggle, ca);
+    private void setHudScale(double mx) {
+        if (selectedHud == null) return;
+        int x = cx + 168, w = cw - 184;
+        float scale = 0.5f + 2.5f * (float) Math.max(0, Math.min(1, (mx - x) / w));
+        selectedHud.scale = Math.round(scale * 20f) / 20f;
     }
 
     private void renderLayoutMode(GuiGraphicsExtractor ctx, int mx, int my, float dt) {
@@ -1423,10 +1607,10 @@ public class MenuScreen extends Screen {
         int guide = alpha(0xFFECECEE, open * 0.25f);
         ctx.fill(centerX, 0, centerX + 1, height, snappedX ? alpha(ACCENT, open * 0.9f) : guide);
         ctx.fill(0, centerY, width, centerY + 1, snappedY ? alpha(ACCENT, open * 0.9f) : guide);
-        rrect(ctx, centerX - 5, centerY - 5, 11, 11, 2, alpha(0xE0131313, open));
+        rrect(ctx, centerX - 5, centerY - 5, 11, 11, 2, alpha(BG, open));
         border(ctx, centerX - 5, centerY - 5, 11, 11,
                 alpha(snappedX || snappedY ? ACCENT : TEXT, open * 0.9f));
-        rrect(ctx, centerX - 25, centerY + 9, 50, 14, 3, alpha(0xE0131313, open));
+        rrect(ctx, centerX - 25, centerY + 9, 50, 14, 3, alpha(BG, open));
         txtCentered(ctx, "CENTER", centerX, centerY + 12, alpha(TEXT, open));
 
         for (HudModule m : HudManager.MODULES) {
@@ -1467,48 +1651,58 @@ public class MenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-        double mx = click.x();
-        double my = click.y();
-        int button = click.button();
         geometry();
-
+        if (closing) return true;
+        double mx = layoutMode ? click.x() : click.x() / uiScale;
+        double my = layoutMode ? click.y() : click.y() / uiScale;
+        int button = click.button();
         if (layoutMode) return layoutClicked(mx, my, button);
+        click = new MouseButtonEvent(mx, my, click.buttonInfo());
         if (button != 0) return false;
-
-        if (!inside(mx, my, px - 4, py - 4, pw + 8, ph + 8)) {
-            onClose(); // click on the dimmed background
+        if (confirmReset) {
+            int x = px + (pw - 290) / 2, y = py + (ph - 116) / 2;
+            if (inside(mx, my, x + 150, y + 70, 122, 26)) {
+                HabibConfig.appearance = new AppearanceSettings(); HabibConfig.save(); confirmReset = false;
+            } else if (inside(mx, my, x + 16, y + 70, 122, 26)) confirmReset = false;
             return true;
         }
-        if (scrollbarHit(mx, my)) {
-            sbDrag = true;
-            dragScrollbar(my);
-            return true;
+        modalOpacity = 0f;
+        if (armorDropdown >= 0) { dropdownClicked(mx, my); return true; }
+        if (!inside(mx, my, px - 4, py - 4, pw + 8, ph + 8)) { onClose(); return true; }
+        if (scrollbarHit(mx, my)) { sbDrag = true; dragScrollbar(my); return true; }
+        if (inside(mx, my, px + pw - 33, py + 15, 23, 23)) { onClose(); return true; }
+        if (inside(mx, my, pillX(), pillY(), pillW(), 20)) { Updater.onClick(); return true; }
+        if (inside(mx, my, px + pw - 212, py + 15, 170, 23)) {
+            setFocused(searchField); searchField.mouseClicked(click, doubled); return true;
         }
-        if (inside(mx, my, px + pw - 32, py + 8, 22, 22)) {
-            onClose();
-            return true;
+        searchField.setFocused(false);
+        if (tab == Tab.LAYOUT && my >= cy && my < cy + ch) {
+            if (inside(mx, my, hudXField.getX() - 18, hudXField.getY() - 8, hudXField.getWidth() + 24, 26)) {
+                setFocused(hudXField); hudXField.mouseClicked(click, doubled); return true;
+            }
+            if (inside(mx, my, hudYField.getX() - 18, hudYField.getY() - 8, hudYField.getWidth() + 24, 26)) {
+                setFocused(hudYField); hudYField.mouseClicked(click, doubled); return true;
+            }
         }
-        if (inside(mx, my, pillX() - 6, py + 8, pillW() + 12, 22)) {
-            Updater.onClick();
-            return true;
-        }
+        setFocused(null);
         for (int i = 0; i < TABS.length; i++) {
             if (inside(mx, my, px + 6, tabY(i), SIDE_W - 12, TAB_H)) {
-                select(TABS[i]);
-                return true;
+                if (!query.isEmpty()) searchField.setValue("");
+                select(TABS[i]); return true;
             }
         }
         if (!inside(mx, my, cx, cy, cw, ch)) return false;
-
+        double contentY = tab.category == null && tab != Tab.PACKS && tab != Tab.PROFILES ? my + Math.round(scroll) : my;
         switch (tab) {
-            case ANIMATIONS -> animationsClicked(mx, my);
+            case APPEARANCE -> appearanceClicked(mx, contentY);
+            case ANIMATIONS -> animationsClicked(mx, contentY);
             case PACKS -> packsClicked(click, doubled, mx, my);
-            case OPTIMIZE -> optimizeClicked(mx, my);
-            case EFFECTS -> effectsClicked(mx, my);
-            case PRESETS_TAB -> presetsClicked(mx, my);
-            case LAYOUT -> layoutTabClicked(mx, my);
+            case OPTIMIZE -> optimizeClicked(mx, contentY);
+            case EFFECTS -> effectsClicked(mx, contentY);
+            case PRESETS_TAB -> presetsClicked(mx, contentY);
+            case LAYOUT -> layoutTabClicked(mx, contentY);
             case PROFILES -> profilesClicked(click, doubled, mx, my);
-            default -> modulesClicked(mx, my);
+            default -> { if (my >= cy + 33) modulesClicked(mx, my); }
         }
         return true;
     }
@@ -1521,7 +1715,7 @@ public class MenuScreen extends Screen {
             HudModule m = list.get(j);
             if (inside(mx, my, cx + cw - 94, ry + 9, 14, 14)) {
                 m.cycleColor();
-            } else if (cw > 350 && inside(mx, my, cx + cw - 174, ry + 8, 16, 16)) {
+            } else if (cw > 350 && inside(mx, my, cx + cw - 184, ry + 8, 16, 16)) {
                 m.scale = Math.max(0.5f, Math.round((m.scale - 0.1f) * 10f) / 10f);
             } else if (cw > 350 && inside(mx, my, cx + cw - 122, ry + 8, 16, 16)) {
                 m.scale = Math.min(3f, Math.round((m.scale + 0.1f) * 10f) / 10f);
@@ -1559,24 +1753,28 @@ public class MenuScreen extends Screen {
     }
 
     private void layoutTabClicked(double mx, double my) {
-        if (inside(mx, my, cx, cy + 48, 150, 24)) {
-            layoutMode = true;
-        } else if (inside(mx, my, cx + 160, cy + 48, 110, 24)) {
-            HudManager.resetAll();
-            HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 84, cw, 26)) {
-            HabibConfig.hudBackground = !HabibConfig.hudBackground;
-            HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 132, cw, 22)) {
-            HabibConfig.armorLayout = (HabibConfig.armorLayout + 1) % ARMOR_LAYOUTS.length;
-            HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 156, cw, 22)) {
-            HabibConfig.armorDurability = (HabibConfig.armorDurability + 1) % ARMOR_DURABILITY.length;
-            HabibConfig.save();
-        } else if (inside(mx, my, cx, cy + 180, cw, 22)) {
-            HabibConfig.armorShowHeld = !HabibConfig.armorShowHeld;
-            HabibConfig.save();
+        if (inside(mx, my, cx, cy + 32, 150, 22)) { layoutMode = true; return; }
+        if (inside(mx, my, cx + 160, cy + 32, 110, 22)) { HudManager.resetAll(); HabibConfig.save(); return; }
+        int top = cy + 64;
+        if (inside(mx, my, cx, top, 142, 220)) {
+            int index = (int) ((my - top - 4 + Math.round(hudListScroll)) / 24);
+            if (index >= 0 && index < HudManager.MODULES.size()) {
+                selectedHud = HudManager.MODULES.get(index);
+                selectedToggle = selectedHud.enabled ? 1f : 0f;
+                selectedScale = selectedHud.scale;
+                setFocused(null);
+            }
+            return;
         }
+        int x = cx + 152, w = cw - 152;
+        if (selectedHud != null && inside(mx, my, x, top, w, 34)) selectedHud.enabled = !selectedHud.enabled;
+        else if (selectedHud != null && inside(mx, my, x + 10, top + 113, w - 20, 24)) { hudScaleDrag = true; setHudScale(mx); }
+        else if (selectedHud != null && inside(mx, my, x + w - 36, top + 143, 24, 24)) selectedHud.cycleColor();
+        else if (inside(mx, my, cx, cy + 320, cw, 22)) { armorDropdown = 0; dropdownExpansion = 0f; }
+        else if (inside(mx, my, cx, cy + 346, cw, 22)) { armorDropdown = 1; dropdownExpansion = 0f; }
+        else if (inside(mx, my, cx, cy + 372, cw, 30)) HabibConfig.armorShowHeld = !HabibConfig.armorShowHeld;
+        else if (inside(mx, my, cx, cy + 406, cw, 30)) HabibConfig.hudBackground = !HabibConfig.hudBackground;
+        HabibConfig.save();
     }
 
     private boolean layoutClicked(double mx, double my, int button) {
@@ -1607,8 +1805,11 @@ public class MenuScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
-        double mx = click.x();
-        double my = click.y();
+        geometry();
+        double mx = layoutMode ? click.x() : click.x() / uiScale;
+        double my = layoutMode ? click.y() : click.y() / uiScale;
+        if (hudScaleDrag) { setHudScale(mx); return true; }
+        if (appearanceDrag || blurDrag) { if (appearanceDrag) setOpacity(mx); else setBlur(mx); return true; }
         if (sbDrag) {
             geometry();
             dragScrollbar(my);
@@ -1637,7 +1838,8 @@ public class MenuScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent click) {
-        if (sliderDrag || dragging != null || sbDrag) {
+        if (sliderDrag || hudScaleDrag || appearanceDrag || blurDrag || dragging != null || sbDrag) {
+            hudScaleDrag = appearanceDrag = blurDrag = false;
             sbDrag = false;
             sliderDrag = false;
             dragging = null;
@@ -1649,6 +1851,12 @@ public class MenuScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
         geometry();
+        if (confirmReset || closing || armorDropdown >= 0) return true;
+        if (!layoutMode) { mx /= uiScale; my /= uiScale; }
+        if (!layoutMode && tab == Tab.LAYOUT && inside(mx, my, cx, cy + 64 - Math.round(scroll), 142, 220)) {
+            hudListScroll = Math.max(0, Math.min(Math.max(0, HudManager.MODULES.size() * 24 + 8 - 220), hudListScroll - (float) vertical * 24));
+            return true;
+        }
         if (layoutMode) {
             HudModule m = topModuleAt(mx, my);
             if (m != null) {
@@ -1666,11 +1874,11 @@ public class MenuScreen extends Screen {
     /** Esc: leave the layout editor first, then close the menu. */
     @Override
     public void onClose() {
-        if (layoutMode) {
-            layoutMode = false;
-            return;
-        }
-        super.onClose();
+        if (confirmReset) { confirmReset = false; return; }
+        if (armorDropdown >= 0) { armorDropdown = -1; return; }
+        if (layoutMode) { layoutMode = false; return; }
+        if (HabibConfig.appearance.animations) closing = true;
+        else super.onClose();
     }
 
     @Override

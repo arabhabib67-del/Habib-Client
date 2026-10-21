@@ -82,3 +82,17 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
+
+// Shared, mapping-independent appearance and OS integration.
+sourceSets.main.java.srcDir("shared/src/main/java")
+
+sourceSets.test.java.srcDir("shared/src/test/java")
+tasks.register('verifyAppearance', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.habib.client.gui.theme.AppearanceChecks'
+}
+tasks.named('check') { dependsOn 'verifyAppearance' }
+
+// The assertion runner is executed by verifyAppearance, not by a test-framework adapter.
+tasks.named("test") { exclude "**/AppearanceChecks.class" }
