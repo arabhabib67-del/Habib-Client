@@ -31,7 +31,6 @@ public class HabibClient implements ClientModInitializer {
     public static KeyBinding spotifyNextKey;
 
     private static boolean zooming = false;
-    private static int savedFov = 70;
 
     @Override
     public void onInitializeClient() {
@@ -79,24 +78,41 @@ public class HabibClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STOPPING.register(HabibClient::stopZoom);
     }
 
-    /** Hold-to-zoom by temporarily lowering the FOV option (no mixin needed). */
+    /** Apply the saved FOV for the active camera, with hold-to-zoom layered on top. */
     private static void tickZoom(MinecraftClient mc) {
         var fov = mc.options.getFov();
-        if (zoomKey.isPressed() && mc.player != null) {
-            if (!zooming) {
-                savedFov = fov.getValue();
-                zooming = true;
-            }
-            int target = Math.max(30, Math.min(110, Math.round(savedFov * HabibConfig.zoomFactor)));
-            if (fov.getValue() != target) fov.setValue(target);
-        } else {
-            stopZoom(mc);
+        initializeFovDefaults(fov.getValue());
+        int baseFov = mc.options.getPerspective().isFirstPerson()
+                ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
+        zooming = zoomKey.isPressed() && mc.player != null;
+        int targetFov = zooming
+                ? Math.max(30, Math.min(110, Math.round(baseFov * HabibConfig.zoomFactor)))
+                : baseFov;
+        if (fov.getValue() != targetFov) {
+            fov.setValue(targetFov);
         }
+    }
+
+    private static void initializeFovDefaults(int currentFov) {
+        boolean changed = false;
+        if (HabibConfig.firstPersonFov < 30) {
+            HabibConfig.firstPersonFov = currentFov;
+            changed = true;
+        }
+        if (HabibConfig.thirdPersonFov < 30) {
+            HabibConfig.thirdPersonFov = currentFov;
+            changed = true;
+        }
+        if (changed) HabibConfig.save();
     }
 
     private static void stopZoom(MinecraftClient mc) {
         if (zooming) {
-            mc.options.getFov().setValue(savedFov);
+            int currentFov = mc.options.getFov().getValue();
+            initializeFovDefaults(currentFov);
+            int baseFov = mc.options.getPerspective().isFirstPerson()
+                    ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
+            mc.options.getFov().setValue(baseFov);
             zooming = false;
         }
     }

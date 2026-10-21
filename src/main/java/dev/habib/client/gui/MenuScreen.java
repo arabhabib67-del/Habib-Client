@@ -48,7 +48,8 @@ public class MenuScreen extends Screen implements GlassScreen {
         PRESETS_TAB("Presets", null),
         LAYOUT("HUD Editor", null),
         PROFILES("Profiles", null),
-        APPEARANCE("Appearance", null);
+        APPEARANCE("Appearance", null),
+        CAMERA("Camera", null);
 
         final String label;
         final Category category;
@@ -354,6 +355,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case EFFECTS -> 165;
                 case PRESETS_TAB -> 200;
                 case LAYOUT -> 440;
+                case CAMERA -> 170;
                 default -> 0;
             };
             return Math.max(0f, contentHeight - ch);
@@ -583,6 +585,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case EFFECTS -> renderEffects(ctx, mx, my, dt, ca, oy);
                 case PRESETS_TAB -> renderPresets(ctx, mx, my, dt, ca, oy);
                 case LAYOUT -> renderLayoutTab(ctx, mx, my, dt, ca, oy);
+                case CAMERA -> renderCameraTab(ctx, mx, my, ca, oy);
                 case PROFILES -> renderProfiles(ctx, mx, my, ca, oy);
                 default -> renderModules(ctx, mx, my, dt, ca);
             }
@@ -1581,6 +1584,43 @@ public class MenuScreen extends Screen implements GlassScreen {
         optimizeRow(ctx, mx, my, oy + 406, "Widget backgrounds", "Draw a readable background behind HUD widgets.", bgToggle, ca);
     }
 
+    private void fovOptionRow(DrawContext ctx, int mx, int my, int y, String label,
+                              int value, int key, float ca) {
+        boolean over = inside(mx, my, cx, y, cw, 30);
+        hoverRowCard(ctx, cx, y, cw, 30, 9, over, ca);
+        txt(ctx, label, cx + 10, y + 10, alpha(TEXT, ca));
+        int minusX = cx + cw - 56;
+        int plusX = cx + cw - 30;
+        txtRight(ctx, value + "°", minusX - 7, y + 10, alpha(over ? ACCENT : TEXT, ca));
+
+        boolean minusOver = inside(mx, my, minusX, y + 5, 22, 20);
+        float minusMotion = hoverSpring(key, minusOver);
+        float minusBounce = lastHoverBounce;
+        drawHoverSurface(ctx, minusX, y + 5, 22, 20, 8, ROW, ROW_HOVER,
+                minusMotion, minusBounce, ca);
+        txtCentered(ctx, "−", minusX + 11, y + 11, alpha(minusOver ? ACCENT : TEXT, ca));
+
+        boolean plusOver = inside(mx, my, plusX, y + 5, 22, 20);
+        float plusMotion = hoverSpring(key + 1, plusOver);
+        float plusBounce = lastHoverBounce;
+        drawHoverSurface(ctx, plusX, y + 5, 22, 20, 8, ROW, ROW_HOVER,
+                plusMotion, plusBounce, ca);
+        txtCentered(ctx, "+", plusX + 11, y + 11, alpha(plusOver ? ACCENT : TEXT, ca));
+    }
+
+    private void renderCameraTab(DrawContext ctx, int mx, int my, float ca, int oy) {
+        sectionTitle(ctx, "Camera FOV", cx, oy, ca);
+        txt(ctx, "Choose a separate field of view for each camera view.", cx, oy + 15, alpha(MUTED, ca));
+        fovOptionRow(ctx, mx, my, oy + 43, "First person", HabibConfig.firstPersonFov, 4200, ca);
+        fovOptionRow(ctx, mx, my, oy + 81, "Third person", HabibConfig.thirdPersonFov, 4210, ca);
+
+        boolean firstPerson = MinecraftClient.getInstance().options.getPerspective().isFirstPerson();
+        int activeFov = firstPerson ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
+        txt(ctx, "Active view: " + (firstPerson ? "First person" : "Third person")
+                + "  ·  " + activeFov + "°", cx + 2, oy + 126, alpha(ACCENT, ca));
+        txt(ctx, "Hold C to zoom using the active view's FOV.", cx + 2, oy + 145, alpha(MUTED, ca));
+    }
+
     private void hudPositionField(DrawContext ctx, TextFieldWidget field, int x, int y, int w, int value, String axis, int mx, int my, float a) {
         glassBorder(ctx, x, y, w, 26, 7, alpha(field.isFocused() ? ACCENT : HAIR, a), alpha(ROW, a));
         txt(ctx, axis, x + 8, y + 9, alpha(MUTED, a));
@@ -1701,6 +1741,7 @@ public class MenuScreen extends Screen implements GlassScreen {
             case EFFECTS -> effectsClicked(mx, contentY);
             case PRESETS_TAB -> presetsClicked(mx, contentY);
             case LAYOUT -> layoutTabClicked(mx, contentY);
+                case CAMERA -> cameraTabClicked(mx, contentY);
             case PROFILES -> profilesClicked(click, doubled, mx, my);
             default -> { if (my >= cy + 33) modulesClicked(mx, my); }
         }
@@ -1775,6 +1816,24 @@ public class MenuScreen extends Screen implements GlassScreen {
         else if (inside(mx, my, cx, cy + 372, cw, 30)) HabibConfig.armorShowHeld = !HabibConfig.armorShowHeld;
         else if (inside(mx, my, cx, cy + 406, cw, 30)) HabibConfig.hudBackground = !HabibConfig.hudBackground;
         HabibConfig.save();
+    }
+
+    private void cameraTabClicked(double mx, double my) {
+        if (adjustFov(mx, my, cy + 43, cx + cw - 56, cx + cw - 30, true)) return;
+        adjustFov(mx, my, cy + 81, cx + cw - 56, cx + cw - 30, false);
+    }
+
+    private boolean adjustFov(double mx, double my, int y, int minusX, int plusX, boolean firstPerson) {
+        if (!inside(mx, my, cx, y, cw, 30)) return false;
+        int value = firstPerson ? HabibConfig.firstPersonFov : HabibConfig.thirdPersonFov;
+        if (inside(mx, my, minusX, y + 5, 22, 20)) value = Math.max(30, value - 5);
+        else if (inside(mx, my, plusX, y + 5, 22, 20)) value = Math.min(110, value + 5);
+        else return true;
+
+        if (firstPerson) HabibConfig.firstPersonFov = value;
+        else HabibConfig.thirdPersonFov = value;
+        HabibConfig.save();
+        return true;
     }
 
     private boolean layoutClicked(double mx, double my, int button) {

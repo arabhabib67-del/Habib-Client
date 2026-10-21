@@ -22,6 +22,10 @@ public final class HabibConfig {
     /** Hold-to-zoom FOV multiplier (smaller = more zoom). */
     public static float zoomFactor = 0.25f;
 
+    /** Per-perspective FOV values; -1 means initialize from the user's Minecraft FOV. */
+    public static int firstPersonFov = -1;
+    public static int thirdPersonFov = -1;
+
     /** First-person swing animation: index into SwingAnimator.NAMES (0 = vanilla). */
     public static int swingStyle = 1;
     public static float swingIntensity = 1f;
@@ -72,6 +76,8 @@ public final class HabibConfig {
     private static class Data {
         AppearanceSettings appearance = new AppearanceSettings();
         float zoomFactor = 0.25f;
+        Integer firstPersonFov;
+        Integer thirdPersonFov;
         int swingStyle = 1;
         float swingIntensity = 1f;
         boolean swingOnlyOnHit = true;
@@ -114,6 +120,8 @@ public final class HabibConfig {
         Data data = new Data();
         data.appearance = appearance;
         data.zoomFactor = zoomFactor;
+        data.firstPersonFov = firstPersonFov;
+        data.thirdPersonFov = thirdPersonFov;
         data.swingStyle = swingStyle;
         data.swingIntensity = swingIntensity;
         data.hudBackground = hudBackground;
@@ -181,6 +189,8 @@ public final class HabibConfig {
     /** Applies a settings snapshot. Updater settings are only taken from the config file, never from a profile. */
     private static void apply(Data data, boolean updater) {
         zoomFactor = Math.max(0.05f, Math.min(1f, data.zoomFactor));
+        if (data.firstPersonFov != null) firstPersonFov = clampFov(data.firstPersonFov);
+        if (data.thirdPersonFov != null) thirdPersonFov = clampFov(data.thirdPersonFov);
         swingStyle = Math.max(0, Math.min(SwingAnimator.COUNT - 1, data.swingStyle));
         swingIntensity = Math.max(0.25f, Math.min(2f, data.swingIntensity));
         hudBackground = data.hudBackground;
@@ -213,6 +223,10 @@ public final class HabibConfig {
             m.scale = Math.max(0.5f, Math.min(3f, d.scale));
             m.color = d.color;
         }
+    }
+
+    private static int clampFov(int fov) {
+        return fov < 30 ? -1 : Math.max(30, Math.min(110, fov));
     }
 
     public static void save() {
