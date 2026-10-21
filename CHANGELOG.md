@@ -1,6 +1,12 @@
 # Habib Client changelog
 
 Version numbers for 1.1.0 and up were assigned afterwards to group the changes in the order they were made.
+## 1.15.9 - Usage statistics panel
+- Added an in-game Stats panel showing active installations today, over the past 7 days, and by game and mod version.
+- Usage sharing is off by default. Opting in sends a random installation ID plus mod/game versions once per day; no player name, Minecraft account, world or server details are sent.
+- Added an owner-deployed Cloudflare Worker and D1 database for aggregate counts; records are hashed and automatically removed after 35 days.
+- The analytics service URL is optional and can be set as the GitHub Actions variable `HABIB_ANALYTICS_URL`.
+
 ## 1.15.8 - Password-free startup
 - Removed the beta password screen and gating so modules work as soon as the game starts.
 - Removed the GitHub Actions password secret requirement; both Minecraft jars now build and release without it.

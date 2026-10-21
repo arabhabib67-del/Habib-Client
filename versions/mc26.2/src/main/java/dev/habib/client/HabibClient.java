@@ -11,6 +11,7 @@ import dev.habib.client.util.Effects;
 import dev.habib.client.util.ConsumableOptimizer;
 import dev.habib.client.util.PearlOptimizer;
 import dev.habib.client.util.NowPlaying;
+import dev.habib.client.telemetry.UsageStats;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -46,6 +47,7 @@ public class HabibClient implements ClientModInitializer {
                 "key.habibclient.spotify_next", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_F9, category));
 
         HudManager.init();
+        UsageStats.initialize();
         Updater.init();
         AnchorOptimizer.init();
         CrystalOptimizer.init();

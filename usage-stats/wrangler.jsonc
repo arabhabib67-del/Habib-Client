@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "habib-client-usage-stats",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-21",
+  "triggers": {
+    "crons": ["0 0 * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "habib-client-usage-stats",
+      "database_id": "REPLACE_WITH_DATABASE_ID"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ plugins {
 
 version = project.mod_version
 group = project.maven_group
+def usageAnalyticsEndpoint = System.getenv("HABIB_ANALYTICS_URL") ?: project.findProperty("usage_analytics_endpoint") ?: ""
 
 base {
     archivesName = project.archives_base_name
@@ -24,12 +25,18 @@ processResources {
     inputs.property "minecraftVersion", project.minecraft_version
     inputs.property "minecraftRange", "~${project.minecraft_version}"
     inputs.property "javaVersion", "25"
+    inputs.property "usageAnalyticsEndpoint", usageAnalyticsEndpoint
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
                "updateRepo": project.update_repo,
                "minecraftVersion": project.minecraft_version,
                "minecraftRange": "~${project.minecraft_version}",
                "javaVersion": "25"
+    }
+    filesMatching("habib-analytics.properties") {
+        expand "usageAnalyticsEndpoint": usageAnalyticsEndpoint,
+               "version": project.version,
+               "minecraft_version": project.minecraft_version
     }
 }
 

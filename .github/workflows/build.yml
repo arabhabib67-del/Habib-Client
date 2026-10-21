@@ -10,6 +10,8 @@ permissions:
 jobs:
   build-1-21-11:
     runs-on: ubuntu-latest
+    env:
+      HABIB_ANALYTICS_URL: ${{ vars.HABIB_ANALYTICS_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -25,6 +27,8 @@ jobs:
 
   build-26-2:
     runs-on: ubuntu-latest
+    env:
+      HABIB_ANALYTICS_URL: ${{ vars.HABIB_ANALYTICS_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

@@ -59,6 +59,10 @@ public final class HabibConfig {
     public static String updateRepo = "";
     public static boolean autoUpdate = true;
 
+    /** Optional, explicit opt-in to anonymous daily active-install counts. */
+    public static boolean shareUsageStats = false;
+    public static String usageStatsInstallId = "";
+
     /** Draw the translucent box behind HUD modules. Off = plain text only. */
     public static boolean hudBackground = true;
 
@@ -102,6 +106,8 @@ public final class HabibConfig {
         boolean hudBackground = true;
         String updateRepo = "";
         boolean autoUpdate = true;
+        boolean shareUsageStats = false;
+        String usageStatsInstallId = "";
         int armorLayout = 0;
         boolean armorShowHeld = true;
         int armorDurability = 0;
@@ -135,6 +141,8 @@ public final class HabibConfig {
         data.hudBackground = hudBackground;
         data.updateRepo = updateRepo;
         data.autoUpdate = autoUpdate;
+        data.shareUsageStats = shareUsageStats;
+        data.usageStatsInstallId = usageStatsInstallId;
         data.armorLayout = armorLayout;
         data.armorShowHeld = armorShowHeld;
         data.armorDurability = armorDurability;
@@ -169,6 +177,8 @@ public final class HabibConfig {
         data.appearance = null; // appearance belongs to this installation, not a share code
         data.updateRepo = "";
         data.autoUpdate = true;
+        data.shareUsageStats = false;
+        data.usageStatsInstallId = "";
         return new Gson().toJson(data);
     }
 
@@ -209,6 +219,8 @@ public final class HabibConfig {
             appearance.sanitize();
             updateRepo = data.updateRepo == null ? "" : data.updateRepo;
             autoUpdate = data.autoUpdate;
+            shareUsageStats = data.shareUsageStats;
+            usageStatsInstallId = data.usageStatsInstallId == null ? "" : data.usageStatsInstallId;
         }
         armorLayout = Math.max(0, Math.min(1, data.armorLayout));
         armorShowHeld = data.armorShowHeld;

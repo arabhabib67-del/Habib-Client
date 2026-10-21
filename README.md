@@ -67,6 +67,12 @@ Press **Right Shift** in a world to open the Habib Client menu.
 
 Settings are saved to `config/habibclient.json`.
 
+## Usage statistics
+
+The **Stats** tab shows opted-in active installations today and over the previous 7 days, with counts by Minecraft and Habib Client version. Usage sharing is off by default. If enabled, the mod sends a random installation ID and version numbers once per day; it does not send player names, Minecraft account IDs, worlds or server addresses. The self-hosted service hashes installation IDs and removes records after 35 days. Cloudflare handles ordinary network connection metadata; the Worker does not save IP addresses.
+
+To turn on the panel's live counts, deploy the included Cloudflare Worker and set the GitHub Actions variable `HABIB_ANALYTICS_URL`. Follow [the setup steps](usage-stats/SETUP.md). Until the service URL is configured, the panel remains available but displays that setup is needed.
+
 ## Auto-update
 The mod can update itself from your own GitHub repo, so you never have to send or copy a jar by hand again.
 

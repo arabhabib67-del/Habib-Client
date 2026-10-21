@@ -12,6 +12,7 @@ import dev.habib.client.packs.ModrinthPacks;
 import dev.habib.client.packs.ModrinthPacks.Hit;
 import dev.habib.client.update.Updater;
 import dev.habib.client.util.SwingAnimator;
+import dev.habib.client.telemetry.UsageStats;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
@@ -50,7 +51,8 @@ public class MenuScreen extends Screen implements GlassScreen {
         LAYOUT("HUD Editor", null),
         PROFILES("Profiles", null),
         APPEARANCE("Appearance", null),
-        CAMERA("Camera", null);
+        CAMERA("Camera", null),
+        STATS("Stats", null);
 
         final String label;
         final Category category;
@@ -376,6 +378,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case PRESETS_TAB -> 200;
                 case LAYOUT -> 440;
                 case CAMERA -> 170;
+                case STATS -> 244;
                 default -> 0;
             };
             return Math.max(0f, contentHeight - ch);
@@ -493,6 +496,7 @@ public class MenuScreen extends Screen implements GlassScreen {
             MinecraftClient.getInstance().getResourcePackManager().scanPacks();
             if (!searchedOnce) runSearch();
         }
+        if (t == Tab.STATS) UsageStats.refresh();
     }
 
     // ------------------------------------------------------------------ render
@@ -619,6 +623,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case PRESETS_TAB -> renderPresets(ctx, mx, my, dt, ca, oy);
                 case LAYOUT -> renderLayoutTab(ctx, mx, my, dt, ca, oy);
                 case CAMERA -> renderCameraTab(ctx, mx, my, ca, oy);
+                case STATS -> renderStats(ctx, mx, my, dt, ca, oy);
                 case PROFILES -> renderProfiles(ctx, mx, my, ca, oy);
                 default -> renderModules(ctx, mx, my, dt, ca);
             }
@@ -990,6 +995,56 @@ public class MenuScreen extends Screen implements GlassScreen {
         optimizeRow(ctx, mx, my, oy + 96, "Totem pop messages", "A chat line when you or your target pops.", popMessageToggle, ca);
         optimizeRow(ctx, mx, my, oy + 130, "Low armor warning", "Orange pulse when a piece is under 10% durability.", lowArmorToggle, ca);
         optimizeRow(ctx, mx, my, oy + 164, "Fullbright", "Brightens dark areas without a potion effect.", fullbrightToggle, ca);
+    }
+
+    private void renderStats(DrawContext ctx, int mx, int my, float dt, float ca, int oy) {
+        sectionTitle(ctx, "Usage stats", cx, oy, ca);
+        txt(ctx, "Counts include only installations that opt in.", cx, oy + 12, alpha(MUTED, ca));
+
+        UsageStats.Summary summary = UsageStats.summary();
+        int cardW = (cw - 8) / 2;
+        statsCard(ctx, cx, oy + 32, cardW, "Active today", summary.activeToday(), ca);
+        statsCard(ctx, cx + cardW + 8, oy + 32, cardW, "Active in 7 days", summary.activeLast7Days(), ca);
+
+        txt(ctx, "Active today by Minecraft version", cx, oy + 88, alpha(MUTED, ca));
+        String gameVersions = formatCounts(summary.byGameVersion());
+        if (gameVersions.isEmpty()) {
+            txt(ctx, "No opted-in activity reported today.", cx + 4, oy + 105, alpha(MUTED, ca));
+        } else {
+            txt(ctx, textRenderer.trimToWidth(gameVersions, cw - 4), cx + 4, oy + 105, alpha(TEXT, ca));
+        }
+        txt(ctx, "Mod versions", cx, oy + 123, alpha(MUTED, ca));
+        txt(ctx, textRenderer.trimToWidth(formatCounts(summary.byModVersion()), cw - 4), cx + 4, oy + 140, alpha(TEXT, ca));
+
+        statsSharingToggle = approach(statsSharingToggle, UsageStats.sharingEnabled() ? 1f : 0f, dt, 16f);
+        optimizeRow(ctx, mx, my, oy + 160, "Share anonymous usage", "Sends a random install ID and version once a day; no name, world or server.", statsSharingToggle, ca);
+        txt(ctx, textRenderer.trimToWidth(UsageStats.status(), cw), cx, oy + 196, alpha(MUTED, ca));
+
+        boolean refreshOver = inside(mx, my, cx, oy + 216, cw, 22);
+        glassBorder(ctx, cx, oy + 216, cw, 22, 9, alpha(refreshOver ? ACCENT : HAIR, ca), alpha(ROW, ca));
+        txtCentered(ctx, "Refresh stats", cx + cw / 2, oy + 223, alpha(TEXT, ca));
+    }
+
+    private void statsCard(DrawContext ctx, int x, int y, int w, String label, int value, float ca) {
+        glassBorder(ctx, x, y, w, 48, 10, alpha(HAIR, ca), alpha(ROW, ca * 0.8f));
+        txt(ctx, label, x + 9, y + 9, alpha(MUTED, ca));
+        txtRight(ctx, Integer.toString(value), x + w - 9, y + 26, alpha(TEXT, ca));
+    }
+
+    private String formatCounts(Map<String, Integer> counts) {
+        return counts.entrySet().stream().sorted(Map.Entry.comparingByKey()).limit(5)
+                .map(entry -> entry.getKey() + ": " + entry.getValue())
+                .collect(java.util.stream.Collectors.joining("  ·  "));
+    }
+
+    private float statsSharingToggle;
+
+    private void statsClicked(double mx, double my) {
+        if (inside(mx, my, cx, cy + 160, cw, 30)) {
+            UsageStats.toggleSharing();
+        } else if (inside(mx, my, cx, cy + 216, cw, 22)) {
+            UsageStats.refresh();
+        }
     }
 
     private void effectsClicked(double mx, double my) {
@@ -1792,6 +1847,7 @@ public class MenuScreen extends Screen implements GlassScreen {
             case PRESETS_TAB -> presetsClicked(mx, contentY);
             case LAYOUT -> layoutTabClicked(mx, contentY);
             case CAMERA -> cameraTabClicked(mx, contentY);
+            case STATS -> statsClicked(mx, contentY);
             case PROFILES -> profilesClicked(click, doubled, mx, my);
             default -> { if (my >= cy + 33) modulesClicked(mx, my); }
         }
