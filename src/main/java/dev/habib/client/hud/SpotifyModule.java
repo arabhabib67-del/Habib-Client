@@ -8,10 +8,11 @@ import dev.habib.client.util.NowPlaying;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 
-/** Compact now-playing card with album art, live progress, and the active Spotify shortcuts. */
+/** Clean now-playing card with prominent album art, track details, and Spotify shortcuts. */
 public class SpotifyModule extends HudModule {
-    private static final int W = 220;
-    private static final int H = 58;
+    private static final int W = 228;
+    private static final int H = 70;
+    private static final int ART_SIZE = 44;
     private static final int SPOTIFY_GREEN = 0xFF1ED760;
     private static final NowPlaying.Snapshot SAMPLE =
             new NowPlaying.Snapshot("Mild Orange", "Some Feeling", "Foreplay", "Playing",
@@ -38,58 +39,59 @@ public class SpotifyModule extends HudModule {
                     ThemePalette.alpha(palette.edge, 0.78f), ThemePalette.alpha(palette.panel, 0.94f));
         }
 
+        int artX = 10;
+        int artY = (H - ART_SIZE) / 2;
         int tile = hasTrack ? tileColor(snapshot.title() + snapshot.artist()) : 0xFF1B3928;
-        GlassRenderer.rounded(ctx, 7, 8, 36, 36, 7, 0xFF000000 | scale(tile, 0.72f));
-        if (!SpotifyArtwork.draw(ctx, mc, 8, 9, 34)) {
+        GlassRenderer.rounded(ctx, artX - 1, artY - 1, ART_SIZE + 2, ART_SIZE + 2, 8,
+                ThemePalette.alpha(scale(tile, 0.72f), 0.92f));
+        if (!SpotifyArtwork.draw(ctx, mc, artX, artY, ART_SIZE)) {
             String note = "♪";
-            ctx.drawText(mc.textRenderer, note, 25 - mc.textRenderer.getWidth(note) / 2, 20,
+            ctx.drawText(mc.textRenderer, note, artX + (ART_SIZE - mc.textRenderer.getWidth(note)) / 2, artY + 16,
                     hasTrack ? palette.text : SPOTIFY_GREEN, false);
         }
 
-        int textX = 51;
-        int rightX = W - 8;
+        int textX = 63;
+        int rightX = W - 10;
         String title = hasTrack ? snapshot.title() : "Spotify";
-        String detail = hasTrack ? trackDetails(snapshot) : NowPlaying.statusText();
-        drawTrimmed(ctx, mc, title, textX, 7, rightX - textX,
+        String detail = hasTrack ? snapshot.artist() : NowPlaying.statusText();
+        drawTrimmed(ctx, mc, title, textX, 8, rightX - textX,
                 hasTrack ? palette.text : palette.muted, true);
-        drawTrimmed(ctx, mc, detail, textX, 19, rightX - textX, palette.muted, false);
+        if (hasTrack) {
+            GlassRenderer.rounded(ctx, textX, 25, 5, 5, 3,
+                    snapshot.playing() ? SPOTIFY_GREEN : palette.muted);
+            drawTrimmed(ctx, mc, detail, textX + 9, 21, rightX - textX - 9, palette.muted, false);
+        } else {
+            drawTrimmed(ctx, mc, detail, textX, 21, rightX - textX, palette.muted, false);
+        }
 
         if (hasTrack) {
-            int progressRight = rightX;
             if (snapshot.hasTimeline()) {
-                GlassRenderer.rounded(ctx, textX, 32, progressRight - textX, 2, 1,
+                GlassRenderer.rounded(ctx, textX, 37, rightX - textX, 3, 2,
                         ThemePalette.alpha(palette.track, 0.75f));
-                int fillWidth = Math.round((progressRight - textX) * snapshot.progress());
+                int fillWidth = Math.round((rightX - textX) * snapshot.progress());
                 if (fillWidth > 0) {
                     int progressColor = color == 0xFFFFFFFF ? SPOTIFY_GREEN : color;
-                    GlassRenderer.rounded(ctx, textX, 32, fillWidth, 2, 1, progressColor);
+                    GlassRenderer.rounded(ctx, textX, 37, fillWidth, 3, 2, progressColor);
                 }
-            }
-
-            String state = snapshot.playbackStatus();
-            GlassRenderer.rounded(ctx, textX, 38, 5, 5, 3,
-                    snapshot.playing() ? SPOTIFY_GREEN : palette.muted);
-            ctx.drawText(mc.textRenderer, state, textX + 9, 36, palette.muted, false);
-            if (snapshot.hasTimeline()) {
-                String time = NowPlaying.clock(snapshot.positionMs()) + " / " + NowPlaying.clock(snapshot.durMs());
-                int timeWidth = mc.textRenderer.getWidth(time);
-                ctx.drawText(mc.textRenderer, time, rightX - timeWidth, 36, palette.muted, false);
+                String elapsed = NowPlaying.clock(snapshot.positionMs());
+                String duration = NowPlaying.clock(snapshot.durMs());
+                ctx.drawText(mc.textRenderer, elapsed, textX, 44, palette.muted, false);
+                int durationWidth = mc.textRenderer.getWidth(duration);
+                ctx.drawText(mc.textRenderer, duration, rightX - durationWidth, 44, palette.muted, false);
+            } else {
+                drawTrimmed(ctx, mc, snapshot.playbackStatus(), textX, 39,
+                        rightX - textX, palette.muted, false);
             }
         }
 
         String controls = keyName(HabibClient.spotifyPreviousKey) + " Prev   "
                 + keyName(HabibClient.spotifyPlayPauseKey) + " Play/Pause   "
                 + keyName(HabibClient.spotifyNextKey) + " Next";
-        drawTrimmed(ctx, mc, controls, textX, 48, rightX - textX, palette.muted, false);
+        drawTrimmed(ctx, mc, controls, textX, 58, rightX - textX, palette.muted, false);
     }
 
     private static String keyName(net.minecraft.client.option.KeyBinding key) {
         return key == null ? "-" : key.getBoundKeyLocalizedText().getString();
-    }
-
-    private static String trackDetails(NowPlaying.Snapshot snapshot) {
-        if (snapshot.artist().isBlank()) return snapshot.album();
-        return snapshot.album().isBlank() ? snapshot.artist() : snapshot.artist() + " · " + snapshot.album();
     }
 
     private static void drawTrimmed(DrawContext ctx, MinecraftClient mc, String value, int x, int y,
