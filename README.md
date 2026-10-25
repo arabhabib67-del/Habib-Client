@@ -39,6 +39,8 @@ See [UI verification and architecture](docs/liquid-glass-ui.md) for build comman
 | Hunger | Food level and saturation |
 | Toggle Sprint | Off by default. Keeps you sprinting while W is held (Movement tab) |
 | Spotify | The now-playing card (Info tab, off by default) shows song, artist, timeline and Spotify album art when the local player provides it. Artwork downloads in the background; no Spotify login or developer token is needed. Playback works in-game with **F7** (previous), **F8** (play/pause) and **F9** (next); rebind them under Options > Controls > Habib Client. Windows uses the system media session, macOS uses AppleScript (allow Minecraft/Java under System Settings > Privacy & Security > Automation), and Linux uses `playerctl`. The card stays visible with a “Nothing playing” message when no track is active, and keeps the last good track briefly through transient player errors. |
+| Discord Rich Presence | When the Discord desktop app is open, shows “Using Habib Client” with the client logo and a button to join the Habib Client Discord. |
+| Tier Tagger | Shows the best cached MCTiers rank beside other player names. It queries MCTiers in the background using visible players' usernames and UUIDs; turn it off under Effects. |
 | Coordinates / Direction / Speed | Position, facing, blocks per second |
 | Movement Status | Sneaking / Sprinting / Walking |
 | Clock / Memory | Local time, JVM memory use |
@@ -63,6 +65,7 @@ Press **Right Shift** in a world to open the Habib Client menu.
 - **Menu navigation**: Up/Down arrows or the number keys (1-9, 0) switch tabs, PageUp/PageDown/Home/End move through long lists, and the scroll bar can be dragged. Each tab remembers its scroll position, and clicking outside the panel closes the menu.
 - **C** (hold): zoom
 - **F7 / F8 / F9**: Spotify previous / play or pause / next
+- **Tier tagger** (Effects): show or hide cached MCTiers rank badges beside player names
 - Keys can be rebound under Options > Controls > Habib Client
 
 Settings are saved to `config/habibclient.json`.

@@ -374,7 +374,7 @@ public class MenuScreen extends Screen implements GlassScreen {
                 case APPEARANCE -> 352;
                 case ANIMATIONS -> 240;
                 case OPTIMIZE -> 252;
-                case EFFECTS -> 201;
+                case EFFECTS -> 235;
                 case PRESETS_TAB -> 200;
                 case LAYOUT -> 440;
                 case CAMERA -> 170;
@@ -980,6 +980,7 @@ public class MenuScreen extends Screen implements GlassScreen {
     private float popMessageToggle;
     private float lowArmorToggle;
     private float fullbrightToggle;
+    private float tierTaggerToggle;
 
     private void renderEffects(DrawContext ctx, int mx, int my, float dt, float ca, int oy) {
         sectionTitle(ctx, "Effects", cx, oy, ca);
@@ -990,11 +991,13 @@ public class MenuScreen extends Screen implements GlassScreen {
         popMessageToggle = approach(popMessageToggle, HabibConfig.popMessages ? 1f : 0f, dt, 16f);
         lowArmorToggle = approach(lowArmorToggle, HabibConfig.lowArmorWarning ? 1f : 0f, dt, 16f);
         fullbrightToggle = approach(fullbrightToggle, HabibConfig.fullbright ? 1f : 0f, dt, 16f);
+        tierTaggerToggle = approach(tierTaggerToggle, HabibConfig.tierTagger ? 1f : 0f, dt, 16f);
         optimizeRow(ctx, mx, my, oy + 28, "Low health warning", "Pulsing red screen edge at 3 hearts or less.", lowHealthToggle, ca);
         optimizeRow(ctx, mx, my, oy + 62, "Totem pop flash", "Gold when you pop, green when your target does.", popFlashToggle, ca);
         optimizeRow(ctx, mx, my, oy + 96, "Totem pop messages", "A chat line when you or your target pops.", popMessageToggle, ca);
         optimizeRow(ctx, mx, my, oy + 130, "Low armor warning", "Orange pulse when a piece is under 10% durability.", lowArmorToggle, ca);
         optimizeRow(ctx, mx, my, oy + 164, "Fullbright", "Brightens dark areas without a potion effect.", fullbrightToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 198, "Tier tagger", "Shows the best MCTiers rank beside player names.", tierTaggerToggle, ca);
     }
 
     private void renderStats(DrawContext ctx, int mx, int my, float dt, float ca, int oy) {
@@ -1062,6 +1065,9 @@ public class MenuScreen extends Screen implements GlassScreen {
             HabibConfig.save();
         } else if (inside(mx, my, cx, cy + 164, cw, 30)) {
             HabibConfig.fullbright = !HabibConfig.fullbright;
+            HabibConfig.save();
+        } else if (inside(mx, my, cx, cy + 198, cw, 30)) {
+            HabibConfig.tierTagger = !HabibConfig.tierTagger;
             HabibConfig.save();
         }
     }

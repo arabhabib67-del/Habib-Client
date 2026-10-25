@@ -54,6 +54,8 @@ public final class HabibConfig {
     public static boolean popFlash = false;
     public static boolean popMessages = false;
     public static boolean lowArmorWarning = false;
+    /** Shows the best cached MCTiers badge beside player names. */
+    public static boolean tierTagger = true;
 
     /** Auto-update: GitHub repo (owner/name) to check, empty = use the one built into the jar; and on/off. */
     public static String updateRepo = "";
@@ -103,6 +105,7 @@ public final class HabibConfig {
         boolean popFlash = false;
         boolean popMessages = false;
         boolean lowArmorWarning = false;
+        boolean tierTagger = true;
         boolean hudBackground = true;
         String updateRepo = "";
         boolean autoUpdate = true;
@@ -159,6 +162,7 @@ public final class HabibConfig {
         data.popFlash = popFlash;
         data.popMessages = popMessages;
         data.lowArmorWarning = lowArmorWarning;
+        data.tierTagger = tierTagger;
         for (HudModule m : HudManager.MODULES) {
             ModuleData d = new ModuleData();
             d.enabled = m.enabled;
@@ -238,6 +242,7 @@ public final class HabibConfig {
         popFlash = data.popFlash;
         popMessages = data.popMessages;
         lowArmorWarning = data.lowArmorWarning;
+        tierTagger = data.tierTagger;
         for (HudModule m : HudManager.MODULES) {
             ModuleData d = data.modules == null ? null : data.modules.get(m.id);
             if (d == null) continue;

@@ -18,9 +18,11 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    implementation files("../../libs/jDRPC-v1.0.0.jar")
 }
 
 processResources {
+    from("../../libs/jDRPC-v1.0.0.jar") { into "META-INF/jars" }
     inputs.property "version", project.version
     inputs.property "minecraftVersion", project.minecraft_version
     inputs.property "minecraftRange", "~${project.minecraft_version}"

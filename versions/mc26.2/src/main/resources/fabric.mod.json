@@ -27,6 +27,11 @@
       "environment": "client"
     }
   ],
+  "jars": [
+    {
+      "file": "META-INF/jars/jDRPC-v1.0.0.jar"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.18.0",
     "minecraft": "${minecraftRange}",

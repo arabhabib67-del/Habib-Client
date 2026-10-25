@@ -12,7 +12,8 @@
     "UiFontTextureMixin",
     "FovUnlockMixin",
     "SimpleOptionAccessor",
-    "FullbrightMixin"
+    "FullbrightMixin",
+    "TierNameTagMixin"
 
   ],
   "injectors": {

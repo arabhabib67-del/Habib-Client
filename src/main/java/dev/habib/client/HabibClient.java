@@ -10,6 +10,7 @@ import dev.habib.client.util.Effects;
 import dev.habib.client.util.ConsumableOptimizer;
 import dev.habib.client.util.PearlOptimizer;
 import dev.habib.client.util.NowPlaying;
+import dev.habib.client.util.DiscordPresence;
 import dev.habib.client.telemetry.UsageStats;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -54,6 +55,7 @@ public class HabibClient implements ClientModInitializer {
         Effects.init();
         PearlOptimizer.init();
         ConsumableOptimizer.init();
+        DiscordPresence.start();
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             while (openEditorKey.wasPressed()) {
@@ -70,7 +72,10 @@ public class HabibClient implements ClientModInitializer {
         });
 
         // never leave the FOV option stuck at the zoomed value
-        ClientLifecycleEvents.CLIENT_STOPPING.register(HabibClient::stopZoom);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
+            stopZoom(mc);
+            DiscordPresence.stop();
+        });
     }
 
     /** Apply the saved FOV for the active camera, with hold-to-zoom layered on top. */
