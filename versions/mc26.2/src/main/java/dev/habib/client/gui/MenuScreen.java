@@ -970,7 +970,7 @@ public class MenuScreen extends Screen implements GlassScreen {
         optimizeRow(ctx, mx, my, oy + 58, "No explosion particles", "Cuts the lag from crystal explosions.", particleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 90, "No totem particles", "Hides the totem pop burst. Pop counter still works.", totemParticleToggle, ca);
         optimizeRow(ctx, mx, my, oy + 122, "No hit particles", "Hides crit, enchant-hit and damage particles.", hitParticleToggle, ca);
-        optimizeRow(ctx, mx, my, oy + 154, "Ender pearl optimizer", "Hides pearl trail and landing particles. Pearls work as normal.", pearlToggle, ca);
+        optimizeRow(ctx, mx, my, oy + 154, "Ender pearl optimizer", "Cuts pearl particle lag and catches delayed landing effects.", pearlToggle, ca);
         optimizeRow(ctx, mx, my, oy + 186, "Consumable optimizer", "Hides eating, drinking and splash potion particles.", consumableToggle, ca);
         optimizeRow(ctx, mx, my, oy + 218, "Anchor optimizer", "Shows a replaceable ghost after an explosion and reduces blast particles.", anchorToggle, ca);
     }
