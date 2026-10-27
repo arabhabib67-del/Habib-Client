@@ -72,7 +72,7 @@ public final class PearlOptimizer {
         // Track only pearl entities instead of scanning every entity in the world each tick.
         for (Iterator<Entity> it = PEARLS.iterator(); it.hasNext();) {
             Entity pearl = it.next();
-            if (pearl.isRemoved() || pearl.level() != mc.level) {
+            if (pearl.isRemoved()) {
                 it.remove();
                 continue;
             }
